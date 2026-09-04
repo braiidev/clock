@@ -58,7 +58,7 @@ def _render_list(
         rows.append("Presion\u00e1 <a> para crear")
 
     helper = (
-        ["a:nuevo  \u2191\u2191:nav  \u2190\u2192:mover  Space:\u2714/\u25cb  e:editar  d:borrar  x:alarma"]
+        ["a:nuevo  \u2191\u2191:nav  \u2190\u2192/JK:mover  Space:\u2714/\u25cb  e:editar  d:borrar  x:alarma"]
         if mostrar_helpers
         else []
     )

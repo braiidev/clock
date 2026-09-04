@@ -115,32 +115,32 @@ class TodoController:
 
     # ── Normal mode ──
 
+    def _reorder(self, model: TodoModel, delta: int) -> ActionResult:
+        if not model.todos:
+            return ActionResult()
+        idx = model.selected_idx
+        nxt = idx + delta
+        if nxt < 0 or nxt >= len(model.todos):
+            return ActionResult()
+        model.swap(idx, nxt)
+        model.selected_idx = nxt
+        model._clamp_scroll()
+        return ActionResult(needs_save=True)
+
     def _handle_normal(self, model: TodoModel, key: int) -> ActionResult:
         if key == ord("a"):
             model.open_edit(idx=None)
             return ActionResult()
-        if key == curses.KEY_DOWN:
-            model.nav(1)
-            return ActionResult()
-        if key == curses.KEY_UP:
+        if key in (curses.KEY_UP, ord("k")):
             model.nav(-1)
             return ActionResult()
-        if key == curses.KEY_RIGHT and model.todos:
-            idx = model.selected_idx
-            if idx < len(model.todos) - 1:
-                model.swap(idx, idx + 1)
-                model.selected_idx += 1
-                model._clamp_scroll()
-                return ActionResult(needs_save=True)
+        if key in (curses.KEY_DOWN, ord("j")):
+            model.nav(1)
             return ActionResult()
-        if key == curses.KEY_LEFT and model.todos:
-            idx = model.selected_idx
-            if idx > 0:
-                model.swap(idx, idx - 1)
-                model.selected_idx -= 1
-                model._clamp_scroll()
-                return ActionResult(needs_save=True)
-            return ActionResult()
+        if key in (ord("J"), curses.KEY_RIGHT):
+            return self._reorder(model, 1)
+        if key in (ord("K"), curses.KEY_LEFT):
+            return self._reorder(model, -1)
         if key == ord(" ") and model.todos:
             model.toggle_done(model.selected_idx)
             return ActionResult(needs_save=True)

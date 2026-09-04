@@ -96,6 +96,60 @@ def test_right_reorder():
     assert m.selected_idx == 1
 
 
+def test_J_reorder_down():
+    c = TodoController()
+    m = _model(3)
+    c.handle(m, ord("J"), _ctx())
+    assert m.todos[0]["texto"] == "T1"
+    assert m.todos[1]["texto"] == "T0"
+    assert m.selected_idx == 1
+
+
+def test_J_no_move_at_end():
+    c = TodoController()
+    m = _model(2)
+    m.selected_idx = 1
+    c.handle(m, ord("J"), _ctx())
+    assert m.todos[1]["texto"] == "T1"
+    assert m.selected_idx == 1
+
+
+def test_K_reorder_up():
+    c = TodoController()
+    m = _model(3)
+    m.selected_idx = 1
+    c.handle(m, ord("K"), _ctx())
+    assert m.todos[0]["texto"] == "T1"
+    assert m.todos[1]["texto"] == "T0"
+    assert m.selected_idx == 0
+
+
+def test_K_no_move_at_start():
+    c = TodoController()
+    m = _model(2)
+    m.selected_idx = 0
+    c.handle(m, ord("K"), _ctx())
+    assert m.todos[0]["texto"] == "T0"
+    assert m.selected_idx == 0
+
+
+def test_j_navigates_down():
+    c = TodoController()
+    m = _model(3)
+    c.handle(m, ord("j"), _ctx())
+    assert m.selected_idx == 1
+    assert m.todos[0]["texto"] == "T0"
+
+
+def test_k_navigates_up():
+    c = TodoController()
+    m = _model(3)
+    m.selected_idx = 1
+    c.handle(m, ord("k"), _ctx())
+    assert m.selected_idx == 0
+    assert m.todos[0]["texto"] == "T0"
+
+
 def test_right_no_swap_at_end():
     c = TodoController()
     m = _model(2)
