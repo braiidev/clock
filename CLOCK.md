@@ -27,6 +27,7 @@ entre la documentación previa. Es la única fuente de verdad;
 | D16 | `edit_state` de alarmas lo **posee la app** (`self._alarm_edit`) y se comparte controller↔vista; el dict no se recrea por tecla |
 | D17 | `KEY_RESIZE` se maneja en el loop (`_on_resize`: clear+refresh) y cada `_render` relee `getmaxyx`; tier micro degrada sin marco |
 | D18 | Self-update: instalación desde clone git (`install.sh`, `curl|bash`, sin sudo) + actualización **por commits** (`git rev-list --count HEAD..origin/main`), inmune al defasaje entre contador de tasks (`v0.N`) y semver de producto (`v1.y.z`) |
+| D19 | Overlay de actividad `<o>`: **implementado** en v1.2 (D14 lo documentaba pero nunca se había codificado). Agrupa alarmas activas, timers activos, crono y tareas pendientes (por `orden`); `alarmas_mostrar` ahora lo controla ("no ver" oculta la sección). `wc_mostrar` queda **sin efecto declarado**: los WC viven solo en la vista Reloj y siempre se muestran si hay lista |
 
 ---
 
@@ -531,7 +532,9 @@ Orden de features por complejidad: stopwatch (más simple, valida el patrón), t
 
 ## 12. Estado de validación (fases 5-6)
 
-Implementación completa del refactor, **milestone v1.0** + self-update **v1.1**. Suite: `400` tests (pytest) · pyright 0 errores · black. Monolito original eliminado (`clock.py`).
+Implementación completa del refactor, **milestone v1.0** + self-update **v1.1**
++ overlay de actividad **v1.2**. Suite: `414` tests (pytest) · pyright 0 errores
+(v1.0) · black. Monolito original eliminado (`clock.py`).
 
 - **Flows e2e por dispatch** (test_app.py): edición completa de alarma (nombre→hora→días→guardar con `needs_save`), alta de timers/todo/clock-picker, ciclo de tema en Config (reinstala pairs), roundtrip `save_now→store→load`, render micro-tier.
 - **Overlays** (test_overlay.py): `draw_alert`/`draw_help`/`draw_log_viewer` en full y tamaños mínimos, scroll válido.

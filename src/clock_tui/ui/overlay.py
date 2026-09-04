@@ -75,6 +75,53 @@ def draw_help(
     )
 
 
+def draw_activity(
+    stdscr: Any,
+    sections: Sequence[tuple[str, Sequence[str]]],
+    pair_bg: int,
+) -> None:
+    """Dibuja el overlay de actividad bajo demanda (tecla global `o`).
+
+    `sections` es una secuencia de (título, líneas). Si está vacía ya renderiza
+    el estado vacío. Cualquier tecla lo cierra (lo gestiona el router).
+    """
+    painter = Painter(stdscr)
+    sh, sw = painter.size
+    rows: list[tuple[str, bool]] = []
+    for titulo, items in sections:
+        rows.append((titulo, True))
+        if not items:
+            rows.append(("(nada)", False))
+        else:
+            rows.extend((str(it), False) for it in items)
+        rows.append(("", False))
+
+    box_w = min(max(display_width(t) for t, _ in rows) + 8, sw - 4)
+    box_w = max(box_w, 20)
+    box_h = min(len(rows) + 4, sh - 2)
+    sy = max(0, (sh - box_h) // 2)
+    sx = max(0, (sw - box_w) // 2)
+
+    bg_attr = pair_bg
+    marco_attr = pair_bg | curses.A_BOLD
+    titulo_attr = pair_bg | curses.A_BOLD
+    texto_attr = pair_bg
+    helper_attr = pair_bg | curses.A_DIM
+
+    for r in range(box_h):
+        painter.safe(sy + r, sx, " " * box_w, bg_attr)
+    draw_box(painter, sy, sx, box_h, box_w, "◈ Actividad", attr=marco_attr)
+
+    content_w = box_w - 6
+    for i, (line, es_titulo) in enumerate(rows[: box_h - 4]):
+        a = titulo_attr if es_titulo else texto_attr
+        painter.safe(sy + 2 + i, sx + 3, line[:content_w], a)
+    hint = "o:cualquier tecla cierra"
+    painter.safe(
+        sy + box_h - 1, sx + (box_w - display_width(hint)) // 2, hint, helper_attr
+    )
+
+
 def draw_log_viewer(
     stdscr: Any,
     entries: Sequence[dict[str, Any]],

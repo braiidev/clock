@@ -63,11 +63,17 @@ from clock_tui.services.audio import (
 from clock_tui.services.backup import backup_data, restore_from_file
 from clock_tui.ui.browser import draw_browser, list_entries
 from clock_tui.ui.frame import draw_micro
-from clock_tui.ui.overlay import draw_alert, draw_help, draw_log_viewer
+from clock_tui.ui.overlay import (
+    draw_activity,
+    draw_alert,
+    draw_help,
+    draw_log_viewer,
+)
 from clock_tui.ui.responsive import size_tier
 
 _GLOBAL_HELP_LINES = [
     "q:salir   0-6:cambiar vista   []:ciclar vista   ?:esta ayuda",
+    "o:actividad (alarmas, timers, crono, tareas)",
     "↑↓ ←→ hj kl: navegar   Esc:cancelar",
     "n:nuevo   e:editar   d:borrar(con tecla)   Space:toggle/play   R:reset",
 ]
@@ -656,6 +662,57 @@ class ClockApp:
             curses.color_pair(_HELP_BG_PAIR),
         )
 
+    # ── Overlay de actividad ──
+
+    def _build_activity_sections(self) -> list[tuple[str, list[str]]]:
+        """Resumen en vivo de pendientes, agrupado por tipo (tecla `o`)."""
+        secciones: list[tuple[str, list[str]]] = []
+
+        if self.config.get("alarmas_mostrar", "ver") != "no ver":
+            lineas = []
+            activas = [a for a in self.alarms.alarms if a.status == "activado"]
+            for a in sorted(activas, key=lambda a: (a.hora, a.minutos)):
+                dias = a.repeat_str()
+                sufijo = f"  {dias}" if dias else ""
+                lineas.append(f"◷ {a.nombre}  {a.hora:02d}:{a.minutos:02d}{sufijo}")
+            if lineas:
+                secciones.append(("Alarmas activas", lineas))
+
+        lineas = []
+        for t in [t for t in self.timers.timers if t.active]:
+            h, m, s = t.hms()
+            rest = f"{h:02d}:{m:02d}:{s:02d}" if h else f"{m:02d}:{s:02d}"
+            lineas.append(f"⏱ {t.name}  {rest}")
+        if lineas:
+            secciones.append(("Timers activos", lineas))
+
+        if self.stopwatch.active:
+            h, m, s = self.stopwatch.elapsed_hms()
+            secciones.append(("Cronómetro", [f"◷ {h:02d}:{m:02d}:{s:02d}"]))
+
+        lineas = []
+        pendientes = [
+            t
+            for t in self.todo.todos
+            if t.get("tipo", "tarea") == "tarea" and not todo_is_done(t)
+        ]
+        for t in sorted(pendientes, key=lambda t: t.get("orden", 0)):
+            texto = str(t.get("texto", ""))[:42]
+            lineas.append(f"☐ {t.get('orden', '?')}. {texto}")
+        if lineas:
+            secciones.append(("Tareas pendientes", lineas))
+
+        if not secciones:
+            secciones = [("Actividad", ["(sin actividad pendiente)"])]
+        return secciones
+
+    def _render_activity_overlay(self) -> None:
+        draw_activity(
+            self.stdscr,
+            self._build_activity_sections(),
+            curses.color_pair(_HELP_BG_PAIR),
+        )
+
     def _dispatch(self, view: int, key: int) -> object:
         if view == VIEW_DASHBOARD:
             snap = self._build_dashboard_snapshot()
@@ -770,6 +827,8 @@ class ClockApp:
                 self._render_browser()
             if self.router.help_open:
                 self._render_help()
+            if self.router.activity_open:
+                self._render_activity_overlay()
         self._render_alert_overlay()
         self._render_toast()
 

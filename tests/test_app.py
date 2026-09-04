@@ -706,3 +706,83 @@ def test_maybe_start_auto_check_arranca_thread(app, monkeypatch):
     monkeypatch.setenv("CLOCK_NO_AUTO_UPDATE", "0")
     app._maybe_start_auto_check()
     assert started == ["clock-auto-update"]
+
+
+# ── Overlay de actividad (tecla `o`) ──
+
+
+def test_o_key_toggles_activity_overlay(app):
+    from clock_tui.app.router import VIEW_CLOCK
+
+    app.router.goto_view(VIEW_CLOCK)
+    assert app._handle_key(ord("o")) is False
+    assert app.router.activity_open is True
+    assert app._handle_key(ord("x")) is False
+    assert app.router.activity_open is False
+
+
+def test_o_ignored_on_dashboard(app):
+    assert app.router.activity_open is False
+    app._handle_key(ord("o"))
+    assert app.router.activity_open is False
+
+
+def test_build_activity_sections_empty(app):
+    app.alarms.alarms.clear()
+    app.timers.timers.clear()
+    app.todo.todos.clear()
+    app.stopwatch.active = False
+    assert app._build_activity_sections() == [
+        ("Actividad", ["(sin actividad pendiente)"])
+    ]
+
+
+def test_build_activity_sections_con_contenido(app):
+    from clock_tui.features.alarms.model import Alarm
+    from clock_tui.features.timers.model import Timer
+
+    app.alarms.alarms.clear()
+    app.timers.timers.clear()
+    app.todo.todos.clear()
+    app.alarms.alarms.append(
+        Alarm(nombre="Desayuno", hora=6, minutos=55, repeat_days=[0, 1, 2, 3, 4])
+    )
+    app.timers.timers.append(
+        Timer(name="Pasta", time=[0, 5, 0], active=True, remaining=120.0)
+    )
+    app.stopwatch.active = True
+    app.stopwatch.start_time = None
+    app.stopwatch.base_elapsed = 65.5
+    app.todo.todos.append(
+        {"id": 1, "tipo": "tarea", "orden": 3, "texto": "Comprar pan", "activo": True}
+    )
+    app.todo.todos.append(
+        {"id": 2, "tipo": "tarea", "orden": 1, "texto": "Correr", "activo": True}
+    )
+
+    secs = app._build_activity_sections()
+    por_titulo = {t: lineas for t, lineas in secs}
+    assert por_titulo["Alarmas activas"] == ["◷ Desayuno  06:55  L-V"]
+    assert por_titulo["Timers activos"] == ["⏱ Pasta  02:00"]
+    assert por_titulo["Cronómetro"] == ["◷ 00:01:05"]
+    # solo las pendientes, ordenadas por campo "orden"
+    assert por_titulo["Tareas pendientes"] == ["☐ 1. Correr", "☐ 3. Comprar pan"]
+
+
+def test_build_activity_sections_alarmas_ocultas(app):
+    from clock_tui.features.alarms.model import Alarm
+
+    app.alarms.alarms.append(Alarm(nombre="A", hora=6, minutos=0))
+    app.config["alarmas_mostrar"] = "no ver"
+    secs = app._build_activity_sections()
+    assert not any(t == "Alarmas activas" for t, _ in secs)
+
+
+def test_build_activity_sections_no_incluye_timer_pausado(app):
+    from clock_tui.features.timers.model import Timer
+
+    app.timers.timers.append(
+        Timer(name="Pausa", time=[0, 5, 0], active=False, remaining=120.0)
+    )
+    secs = app._build_activity_sections()
+    assert not any(t == "Timers activos" for t, _ in secs)

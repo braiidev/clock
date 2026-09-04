@@ -40,6 +40,7 @@ class RouterResult:
     # comandos globales que el main app debe procesar
     quit_app: bool = False
     toggle_help: bool = False
+    toggle_activity: bool = False
     view_changed: bool = False
 
     # resultado del controller de la feature (si la tecla no era global)
@@ -50,9 +51,10 @@ class RouterResult:
 class Router:
     """Gestiona la vista activa y el dispatch de teclas globales vs feature."""
 
-    def __init__(self, current_view: int = VIEW_DASHBOARD) -> None:
+    def __init__(self, current_view: int = VIEW_DASHBOARD):
         self.current_view = current_view
         self.help_open = False
+        self.activity_open = False
 
     # ── Navegación de vistas ──
 
@@ -83,12 +85,22 @@ class Router:
             self.help_open = False
             return RouterResult(toggle_help=True)
 
+        # Overlay de actividad abierto: cualquier tecla lo cierra (excepto q).
+        if self.activity_open:
+            if key == ord("q"):
+                return RouterResult(quit_app=True)
+            self.activity_open = False
+            return RouterResult(toggle_activity=True)
+
         # ── Globales ──
         if key == ord("q"):
             return RouterResult(quit_app=True)
         if key in (ord("?"), ord("/")):
             self.help_open = True
             return RouterResult(toggle_help=True)
+        if key == ord("o") and self.current_view != VIEW_DASHBOARD:
+            self.activity_open = not self.activity_open
+            return RouterResult(toggle_activity=True)
         if ord("0") <= key <= ord(str(NUM_VIEWS - 1)):
             idx = key - ord("0")
             changed = self.goto_view(idx)

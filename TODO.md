@@ -1,8 +1,10 @@
 # TODO
 
 ## Doing
+- [ ] v1.2.1: Overlay de actividad `<o>` (alarmas/timers/crono/tareas con orden, `alarmas_mostrar` cableado) - v0.27
 
 ## Next
+- [ ] v1.2.2: Auditoría final — pyright 18 errores preexistentes (store/theme/world_zones/weather), black 26 reformat, revisión rendimiento/legibilidad - v0.28
 
 ## Done
 - [x] v1.1.4: doc CLOCK.md (instalación/actualización/desinstalación, convención de versionado) + push a braiidev/clock - v0.25

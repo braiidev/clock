@@ -117,3 +117,47 @@ def test_view_name():
     assert r.view_name(0) == "Dash"
     assert r.view_name(6) == "Conf"
     assert r.view_name(99) == "?"
+
+
+def test_o_opens_activity_overlay():
+    r = Router()
+    r.goto_view(VIEW_CLOCK)
+    res = r.route(ord("o"), _dispatch)
+    assert res.toggle_activity is True
+    assert r.activity_open is True
+    assert res.feature_dispatched is False
+
+
+def test_o_closes_activity_overlay():
+    r = Router()
+    r.goto_view(VIEW_CLOCK)
+    r.route(ord("o"), _dispatch)
+    res = r.route(ord("o"), _dispatch)
+    assert res.toggle_activity is True
+    assert r.activity_open is False
+
+
+def test_activity_any_key_closes():
+    r = Router()
+    r.goto_view(VIEW_CLOCK)
+    r.route(ord("o"), _dispatch)
+    res = r.route(ord("x"), _dispatch)
+    assert res.toggle_activity is True
+    assert r.activity_open is False
+    assert res.feature_dispatched is False
+
+
+def test_activity_q_still_quits():
+    r = Router()
+    r.goto_view(VIEW_CLOCK)
+    r.route(ord("o"), _dispatch)
+    res = r.route(ord("q"), _dispatch)
+    assert res.quit_app is True
+
+
+def test_o_ignored_on_dashboard():
+    r = Router()
+    res = r.route(ord("o"), _dispatch)
+    assert res.toggle_activity is False
+    assert r.activity_open is False
+    assert res.feature_dispatched is True

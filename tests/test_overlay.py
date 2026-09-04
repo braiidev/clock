@@ -4,7 +4,12 @@ from __future__ import annotations
 
 import time
 
-from clock_tui.ui.overlay import draw_alert, draw_help, draw_log_viewer
+from clock_tui.ui.overlay import (
+    draw_activity,
+    draw_alert,
+    draw_help,
+    draw_log_viewer,
+)
 
 
 class _Scr:
@@ -44,6 +49,22 @@ def test_draw_alert_tiny_terminal():
 
 def test_draw_help():
     draw_help(_Scr(20, 60), ["n:nuevo", "e:editar"], ["q:salir"], 8)
+
+
+def test_draw_activity_sections():
+    draw_activity(
+        _Scr(24, 80),
+        [("Alarmas", ["◷ Desayuno 06:55"]), ("Tareas", ["☐ 1. Comprar pan"])],
+        8,
+    )
+
+
+def test_draw_activity_empty():
+    draw_activity(_Scr(20, 60), [("Actividad", ["(sin actividad pendiente)"])], 8)
+
+
+def test_draw_activity_tiny():
+    draw_activity(_Scr(3, 5), [("Alarmas", ["◷ A 06:00"])], 8)
 
 
 def test_draw_log_viewer_empty():
