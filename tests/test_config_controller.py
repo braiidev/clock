@@ -73,6 +73,14 @@ def test_action_restore():
     assert r.command == "restore"
 
 
+def test_action_update_check_sistema():
+    c = ConfigController()
+    m = _model()
+    m.switch_tab(TABS.index("Sistema"))
+    r = c.handle(m, ord("\n"), _ctx())
+    assert r.command == "update_check"
+
+
 def test_text_edit_start():
     c = ConfigController()
     m = _model()

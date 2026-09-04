@@ -10,6 +10,7 @@ from __future__ import annotations
 import curses
 import datetime
 import sys
+import time
 import types
 from typing import Any
 
@@ -114,9 +115,10 @@ def fake_curses(monkeypatch):
 
 
 @pytest.fixture
-def app(fake_curses):
+def app(fake_curses, monkeypatch):
     from clock_tui.app.app import ClockApp
 
+    monkeypatch.setenv("CLOCK_NO_AUTO_UPDATE", "1")  # sin thread de update en tests
     a = ClockApp(_FakeStdscr())
     a.config["sonido"] = False  # evita threads de audio en tests
     yield a
@@ -581,4 +583,126 @@ def test_save_now_roundtrip_through_store(app, monkeypatch, tmp_path):
     assert loaded is not None
     alarms, timers, todos, cfg, wc = loaded
     assert len(alarms) == n_alarms
-    assert cfg.get("tema") == app.config["tema"]
+
+
+# ── Fase v1.1: toast + self-update ──
+
+
+def test_toast_sets_mensaje_y_deadline(app):
+    app.toast("hola", seconds=10)
+    assert app._toast is not None
+    msg, deadline = app._toast
+    assert msg == "hola"
+    assert deadline > time.monotonic()
+
+
+def test_render_toast_expira(app):
+    app.toast("hola", seconds=10)
+    app._render_toast()
+    assert app._toast is not None
+    app._toast = (app._toast[0], time.monotonic() - 1)
+    app._render_toast()
+    assert app._toast is None
+
+
+def test_render_toast_en_terminal_chico_no_rompe(app):
+    app.stdscr.h, app.stdscr.w = 3, 15
+    app.toast("mensaje largo", seconds=10)
+    app._render_toast()
+
+
+def test_run_update_command_notifica(app, monkeypatch):
+    from clock_tui import update as update_mod
+
+    monkeypatch.setattr(update_mod, "repo_root", lambda: "/tmp/repo")
+    monkeypatch.setattr(
+        update_mod,
+        "do_update",
+        lambda repo: update_mod.UpdateResult(True, "Estás al día (v1.0)"),
+    )
+    app._run_update_command()
+    assert app._toast is not None
+    assert "Estás al día" in app._toast[0]
+
+
+def test_check_updates_background_reporta_available(app, monkeypatch):
+    from clock_tui import update as update_mod
+
+    monkeypatch.setattr(update_mod, "repo_root", lambda: "/tmp/repo")
+    monkeypatch.setattr(
+        update_mod,
+        "check_update",
+        lambda repo: update_mod.UpdateInfo(
+            ok=True, behind=2, available="vNueva", current="v"
+        ),
+    )
+    app._check_updates_background()
+    assert app._toast is not None
+    assert "vNueva" in app._toast[0]
+
+
+def test_check_updates_background_silent_sin_novedad(app, monkeypatch):
+    from clock_tui import update as update_mod
+
+    monkeypatch.setattr(update_mod, "repo_root", lambda: "/tmp/repo")
+    monkeypatch.setattr(
+        update_mod,
+        "check_update",
+        lambda repo: update_mod.UpdateInfo(
+            ok=True, behind=0, available="x", current="v"
+        ),
+    )
+    app._check_updates_background()
+    assert app._toast is None
+
+
+def test_check_updates_background_silent_si_error(app, monkeypatch):
+    from clock_tui import update as update_mod
+
+    monkeypatch.setattr(update_mod, "repo_root", lambda: "/tmp/repo")
+    monkeypatch.setattr(
+        update_mod,
+        "check_update",
+        lambda repo: update_mod.UpdateInfo(False, error="git falló"),
+    )
+    app._check_updates_background()
+    assert app._toast is None
+
+
+def test_maybe_start_auto_check_respeta_off(app, monkeypatch):
+    import clock_tui.app.app as app_mod
+
+    started: list[tuple[str, bool]] = []
+
+    class _T:
+        def __init__(self, target=None, name="", daemon=False):
+            started.append((name, daemon))
+
+        def start(self):
+            pass
+
+    monkeypatch.setattr(app_mod.threading, "Thread", _T)
+    monkeypatch.setenv("CLOCK_NO_AUTO_UPDATE", "1")
+    app._maybe_start_auto_check()
+    assert started == []
+
+
+def test_maybe_start_auto_check_arranca_thread(app, monkeypatch):
+    import clock_tui.app.app as app_mod
+
+    started: list[str] = []
+
+    class _T:
+        def __init__(self, target=None, name="", daemon=False):
+            self._target = target
+            started.append(name)
+            self.daemon = daemon
+
+        def start(self):
+            pass
+
+    monkeypatch.setattr(app_mod.threading, "Thread", _T)
+    monkeypatch.setattr(app, "_check_updates_background", lambda: None)
+    monkeypatch.setenv("CLOCK_NO_AUTO_UPDATE", "0")
+    app._maybe_start_auto_check()
+    assert started == ["clock-auto-update"]

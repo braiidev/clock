@@ -17,6 +17,7 @@ from __future__ import annotations
 import curses
 import datetime
 import os
+import threading
 import time
 from typing import Any
 
@@ -111,8 +112,11 @@ class ClockApp:
         self._browser: dict[str, Any] | None = None
         self._log_viewer: dict[str, Any] | None = None
         self._alarm_edit: dict[str, Any] = {}
+        self._toast: tuple[str, float] | None = None
         self._audio_player = AudioPlayer(self._is_alert_active)
         self._pairs = self._install_theme()
+
+        self._maybe_start_auto_check()
 
     # ── Estado / models ──
 
@@ -340,6 +344,70 @@ class ClockApp:
             self._open_browser("sound")
         elif command == "sound_cycle":
             self._cycle_sound_file()
+        elif command == "update_check":
+            threading.Thread(target=self._run_update_command, daemon=True).start()
+
+    # ── Self-update / toasts ──
+
+    def toast(self, msg: str, seconds: float = 8.0) -> None:
+        """Muestra un aviso transitorio (no modal) en pantalla."""
+        self._toast = (msg, time.monotonic() + seconds)
+
+    def _maybe_start_auto_check(self) -> None:
+        from clock_tui import update as update_mod
+
+        if not update_mod.is_auto_update_enabled():
+            return
+        try:
+            threading.Thread(
+                target=self._check_updates_background,
+                name="clock-auto-update",
+                daemon=True,
+            ).start()
+        except Exception:
+            pass
+
+    def _check_updates_background(self) -> None:
+        from clock_tui import update as update_mod
+
+        try:
+            info = update_mod.check_update(update_mod.repo_root())
+            if info.ok and info.behind > 0:
+                self.toast(
+                    f"↻ Actualización disponible: {info.available} "
+                    "(Config → Sistema).",
+                    seconds=12.0,
+                )
+        except Exception:
+            pass
+
+    def _run_update_command(self) -> None:
+        from clock_tui import update as update_mod
+
+        res = update_mod.do_update(update_mod.repo_root())
+        self.toast(res.message, seconds=12.0)
+
+    def _render_toast(self) -> None:
+        if self._toast is None:
+            return
+        msg, deadline = self._toast
+        if time.monotonic() >= deadline:
+            self._toast = None
+            return
+        try:
+            from clock_tui.ui.frame import Painter
+
+            sh, sw = self.stdscr.getmaxyx()
+            if sh < 4 or sw < 12:
+                return
+            painter = Painter(self.stdscr)
+            x = max(0, (sw - len(msg)) // 2)
+            attr = curses.A_REVERSE
+            for i, ch in enumerate(msg):
+                if x + i < sw - 1:
+                    painter.safe(sh - 2, x + i, ch, attr)
+        except Exception:
+            pass
 
     # ── Alert overlay ──
 
@@ -703,6 +771,7 @@ class ClockApp:
             if self.router.help_open:
                 self._render_help()
         self._render_alert_overlay()
+        self._render_toast()
 
     def _render_alert_overlay(self) -> None:
         if self._alert is None:

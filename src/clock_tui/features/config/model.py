@@ -17,7 +17,7 @@ from typing import Any
 
 from clock_tui.core.theme import COLOR_LIST, THEME_NAMES, _set_custom_theme
 
-TABS = ["Apariencia", "Reloj", "Clima", "Sonido", "Data"]
+TABS = ["Apariencia", "Reloj", "Clima", "Sonido", "Data", "Sistema"]
 
 POSPONER_MIN = [1, 2, 5, 10, 15, 20, 30]
 CLIMA_INTERVALO = [5, 10, 15, 30, 60, 120]
@@ -65,32 +65,99 @@ def default_config() -> dict[str, Any]:
 def config_items() -> list[ConfigItem]:
     return [
         ConfigItem("tema", "Tema de color", "Apariencia", "choice", THEME_NAMES),
-        ConfigItem("custom_color_marco", "- Custom: Marco", "Apariencia", "choice", COLOR_LIST),
-        ConfigItem("custom_color_texto", "- Custom: Texto", "Apariencia", "choice", COLOR_LIST),
-        ConfigItem("custom_color_clima", "- Custom: Clima", "Apariencia", "choice", COLOR_LIST),
-        ConfigItem("custom_color_helpers", "- Custom: Helpers", "Apariencia", "choice", COLOR_LIST),
-        ConfigItem("custom_color_nav", "- Custom: Nav", "Apariencia", "choice", COLOR_LIST),
+        ConfigItem(
+            "custom_color_marco", "- Custom: Marco", "Apariencia", "choice", COLOR_LIST
+        ),
+        ConfigItem(
+            "custom_color_texto", "- Custom: Texto", "Apariencia", "choice", COLOR_LIST
+        ),
+        ConfigItem(
+            "custom_color_clima", "- Custom: Clima", "Apariencia", "choice", COLOR_LIST
+        ),
+        ConfigItem(
+            "custom_color_helpers",
+            "- Custom: Helpers",
+            "Apariencia",
+            "choice",
+            COLOR_LIST,
+        ),
+        ConfigItem(
+            "custom_color_nav", "- Custom: Nav", "Apariencia", "choice", COLOR_LIST
+        ),
         ConfigItem("mostrar_marco", "Mostrar marco", "Apariencia", "bool"),
         ConfigItem("mostrar_helpers", "Mostrar ayuda (helpers)", "Apariencia", "bool"),
         ConfigItem("mostrar_segundos", "Mostrar segundos", "Reloj", "bool"),
         ConfigItem("formato_24h", "Formato 24h", "Reloj", "bool"),
-        ConfigItem("alarma_posponer_min", "Posponer alarma (min)", "Reloj", "choice", POSPONER_MIN),
+        ConfigItem(
+            "alarma_posponer_min",
+            "Posponer alarma (min)",
+            "Reloj",
+            "choice",
+            POSPONER_MIN,
+        ),
         ConfigItem("wc_mostrar", "Reloj Mundial", "Reloj", "choice", WC_MOSTRAR),
-        ConfigItem("alarmas_mostrar", "Alarmas en activity", "Reloj", "choice", ALARMAS_MOSTRAR),
+        ConfigItem(
+            "alarmas_mostrar", "Alarmas en activity", "Reloj", "choice", ALARMAS_MOSTRAR
+        ),
         ConfigItem("clima_activo", "Mostrar clima", "Clima", "bool"),
         ConfigItem("clima_ubicacion", "Ubicacion del clima", "Clima", "text"),
-        ConfigItem("clima_intervalo_min", "Auto-actualizar clima", "Clima", "choice", CLIMA_INTERVALO),
-        ConfigItem("clima_mostrar_hace", "Mostrar 'hace N min' en clima", "Clima", "bool"),
-        ConfigItem("clima_retry_max", "Reintentos max. si falla clima", "Clima", "choice", CLIMA_RETRY_MAX),
-        ConfigItem("clima_retry_segs", "Espera entre reintentos", "Clima", "choice", CLIMA_RETRY_SEGS),
+        ConfigItem(
+            "clima_intervalo_min",
+            "Auto-actualizar clima",
+            "Clima",
+            "choice",
+            CLIMA_INTERVALO,
+        ),
+        ConfigItem(
+            "clima_mostrar_hace", "Mostrar 'hace N min' en clima", "Clima", "bool"
+        ),
+        ConfigItem(
+            "clima_retry_max",
+            "Reintentos max. si falla clima",
+            "Clima",
+            "choice",
+            CLIMA_RETRY_MAX,
+        ),
+        ConfigItem(
+            "clima_retry_segs",
+            "Espera entre reintentos",
+            "Clima",
+            "choice",
+            CLIMA_RETRY_SEGS,
+        ),
         ConfigItem("sonido", "Sonido (beep) ON/OFF", "Sonido", "bool"),
-        ConfigItem("sonido_modo", "Origen del sonido", "Sonido", "soundmode", ["default", "custom"]),
-        ConfigItem("sonido_archivo", "- Archivo (carpeta default)", "Sonido", "soundfile"),
-        ConfigItem("sonido_custom_path", "- Archivo (elegido a mano)", "Sonido", "soundbrowser"),
+        ConfigItem(
+            "sonido_modo",
+            "Origen del sonido",
+            "Sonido",
+            "soundmode",
+            ["default", "custom"],
+        ),
+        ConfigItem(
+            "sonido_archivo", "- Archivo (carpeta default)", "Sonido", "soundfile"
+        ),
+        ConfigItem(
+            "sonido_custom_path", "- Archivo (elegido a mano)", "Sonido", "soundbrowser"
+        ),
         ConfigItem("backup_action", "Crear backup", "Data", "action", "backup"),
         ConfigItem("restore_action", "Restaurar backup", "Data", "action", "restore"),
-        ConfigItem("log_view_action", "Ver log de errores", "Data", "action", "log_view"),
-        ConfigItem("log_export_action", "Descargar log de errores", "Data", "action", "log_export"),
+        ConfigItem(
+            "log_view_action", "Ver log de errores", "Data", "action", "log_view"
+        ),
+        ConfigItem(
+            "log_export_action",
+            "Descargar log de errores",
+            "Data",
+            "action",
+            "log_export",
+        ),
+        ConfigItem(
+            "update_check_action",
+            "Comprobar actualizacion",
+            "Sistema",
+            "action",
+            "update_check",
+        ),
     ]
 
 
@@ -121,7 +188,11 @@ class ConfigModel:
                 continue
             if it.key.startswith("custom_color") and tema != "custom":
                 continue
-            if not sonido_on and it.key in ("sonido_modo", "sonido_archivo", "sonido_custom_path"):
+            if not sonido_on and it.key in (
+                "sonido_modo",
+                "sonido_archivo",
+                "sonido_custom_path",
+            ):
                 continue
             if it.key == "sonido_archivo" and modo != "default":
                 continue
@@ -156,7 +227,11 @@ class ConfigModel:
 
     def item_value(self, it: ConfigItem) -> Any:
         if it.tipo == "soundmode":
-            return "Carpeta default" if self.config.get("sonido_modo") == "default" else "Archivo a mano"
+            return (
+                "Carpeta default"
+                if self.config.get("sonido_modo") == "default"
+                else "Archivo a mano"
+            )
         if it.tipo == "soundfile":
             archivo = self.config.get("sonido_archivo")
             return archivo if archivo else "Beep default"
@@ -164,6 +239,7 @@ class ConfigModel:
             path = self.config.get("sonido_custom_path")
             if path:
                 import os
+
                 return os.path.basename(path)
             return "(sin elegir, Enter para buscar)"
         if it.tipo == "text":
