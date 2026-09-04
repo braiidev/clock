@@ -110,6 +110,7 @@ class ClockApp:
         self._alert_blink_counter = 0
         self._browser: dict[str, Any] | None = None
         self._log_viewer: dict[str, Any] | None = None
+        self._alarm_edit: dict[str, Any] = {}
         self._audio_player = AudioPlayer(self._is_alert_active)
         self._pairs = self._install_theme()
 
@@ -583,7 +584,7 @@ class ClockApp:
         if view == VIEW_CLOCK:
             return ClockController().handle(self.clock, key, {})
         if view == VIEW_ALARMS:
-            return AlarmsController().handle(self.alarms, key, {})
+            return AlarmsController().handle(self.alarms, key, {}, self._alarm_edit)
         if view == VIEW_TIMERS:
             return TimersController().handle(self.timers, key, {})
         if view == VIEW_STOPWATCH:
@@ -734,6 +735,16 @@ class ClockApp:
             VIEW_CONFIG: (self.config_model, "config"),
         }
         model, name = specs[view]
+        if name == "alarms":
+            _VIEWS[name].render(
+                self.stdscr,
+                model,
+                theme={},
+                pairs=pairs,
+                config=cfg,
+                edit_state=self._alarm_edit,
+            )
+            return
         _VIEWS[name].render(self.stdscr, model, theme={}, pairs=pairs, config=cfg)
 
     def _render_footer(self) -> None:

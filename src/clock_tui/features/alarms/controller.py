@@ -44,7 +44,7 @@ class AlarmsController:
                 temp_time, temp_time_field, temp_days, temp_days_cursor,
                 confirm_delete
         """
-        es = edit_state or {}
+        es = edit_state if edit_state is not None else {}
         if es.get("edit_mode"):
             return self._handle_edit(model, key, es)
         if es.get("confirm_delete"):
@@ -102,7 +102,9 @@ class AlarmsController:
             es["edit_field"] = 2
         return ActionResult()
 
-    def _edit_days(self, model: AlarmsModel, key: int, es: dict[str, Any]) -> ActionResult:
+    def _edit_days(
+        self, model: AlarmsModel, key: int, es: dict[str, Any]
+    ) -> ActionResult:
         if key == curses.KEY_RIGHT:
             es["temp_days_cursor"] = (es["temp_days_cursor"] + 1) % 7
         elif key == curses.KEY_LEFT:

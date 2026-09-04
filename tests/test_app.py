@@ -7,6 +7,7 @@ dismiss con reset de timer, posponer, y persistencia por needs_save.
 
 from __future__ import annotations
 
+import curses
 import datetime
 import sys
 import types
@@ -462,3 +463,109 @@ def test_render_with_browser_log_and_help(app):
     app.router.help_open = True
     app._render()
     assert app._log_viewer["scroll"] == 0
+
+
+# ── Fase 6.1: flows e2e por dispatch ──
+
+
+def test_alarm_edit_state_persists_across_keys(app):
+    from clock_tui.app.router import VIEW_ALARMS
+
+    n0 = len(app.alarms.alarms)
+    app._dispatch(VIEW_ALARMS, ord("a"))
+    assert app._alarm_edit.get("edit_mode") is True
+
+    app._dispatch(VIEW_ALARMS, ord("X"))
+    assert app._alarm_edit["temp_name"] == "AlarmaX"
+
+    # nombre -> hora -> días -> guardar
+    app._dispatch(VIEW_ALARMS, ord("\n"))
+    app._dispatch(VIEW_ALARMS, ord("9"))  # ignorado en hora
+    app._dispatch(VIEW_ALARMS, ord("\n"))
+    res = app._dispatch(VIEW_ALARMS, ord("\n"))
+    assert res.needs_save is True
+    assert len(app.alarms.alarms) == n0 + 1
+    assert app.alarms.alarms[-1].nombre == "AlarmaX"
+    assert app._alarm_edit.get("edit_mode") is False
+
+
+def test_render_alarm_edit(app):
+    from clock_tui.app.router import VIEW_ALARMS
+
+    app.router.goto_view(VIEW_ALARMS)
+    app._alarm_edit.update(
+        {
+            "edit_mode": True,
+            "edit_field": 0,
+            "temp_name": "Despertar",
+            "temp_time": [7, 30],
+            "temp_time_field": 0,
+            "temp_days": [],
+            "temp_days_cursor": 0,
+        }
+    )
+    app._render()
+
+
+def test_todos_add_edit_commit_via_dispatch(app):
+    from clock_tui.app.router import VIEW_TODO
+
+    n0 = len(app.todo.todos)
+    app._dispatch(VIEW_TODO, ord("a"))
+    assert app.todo.edit_mode is True
+    app._dispatch(VIEW_TODO, curses.KEY_DOWN)  # campo texto
+    app._dispatch(VIEW_TODO, ord("R"))
+    app._dispatch(VIEW_TODO, ord("2"))
+    res = app._dispatch(VIEW_TODO, ord("\n"))
+    assert res.needs_save is True
+    assert len(app.todo.todos) == n0 + 1
+    assert app.todo.todos[-1]["texto"] == "R2"
+
+
+def test_timers_add_via_dispatch(app):
+    from clock_tui.app.router import VIEW_TIMERS
+
+    n0 = len(app.timers.timers)
+    res = app._dispatch(VIEW_TIMERS, ord("a"))
+    assert res.needs_save is True
+    assert len(app.timers.timers) == n0 + 1
+    assert app.timers.timers[-1].name == f"Temporizador{n0 + 1}"
+
+
+def test_clock_picker_opens_via_dispatch(app):
+    from clock_tui.app.router import VIEW_CLOCK
+
+    app._dispatch(VIEW_CLOCK, ord("a"))
+    assert app.clock.picker.open is True
+
+
+def test_config_theme_cycle_applies(app):
+    from clock_tui.app.router import VIEW_CONFIG
+
+    before = app.config["tema"]
+    res = app._dispatch(VIEW_CONFIG, ord(" "))
+    assert res.needs_save is True
+    assert res.theme_changed is True
+    assert app.config["tema"] != before
+    app._handle_feature_result(res)
+    assert app._pairs
+
+
+def test_render_micro_tier(app):
+    app.stdscr.h, app.stdscr.w = 3, 15
+    app._render()
+
+
+def test_save_now_roundtrip_through_store(app, monkeypatch, tmp_path):
+    import clock_tui.app.app as app_mod
+
+    data_file = tmp_path / "data.json"
+    monkeypatch.setattr(app_mod.store_mod, "DATA_FILE", str(data_file))
+    n_alarms = len(app.alarms.alarms)
+
+    app._save_now()
+    loaded = app_mod.store_mod.load()
+    assert loaded is not None
+    alarms, timers, todos, cfg, wc = loaded
+    assert len(alarms) == n_alarms
+    assert cfg.get("tema") == app.config["tema"]
