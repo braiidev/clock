@@ -1,9 +1,11 @@
 # TODO
 
 ## Doing
-- [ ] Fase 6: tests + validación manual - v0.18
+- [ ] Fase 6.1: tests de integración app — flows e2e por feature vía dispatch + renders de overlays (alert/help/log/browser) - v0.18
 
 ## Next
+- [ ] Fase 6.2: validación en terminal real (pty): flows por vista + degradado micro/resize + ausencia de crashes - v0.19
+- [ ] Fase 6.3: cierre — CLOCK.md decisiones fase 5/6, limpieza, tag de milestone - v0.20
 
 ## Done
 - [x] Fase 5.6: main.py funcional (curses.wrapper + crash log) + pyproject script + verificación en pty real - v0.17
