@@ -32,7 +32,7 @@ def test_enter_with_timer():
     snap = _snap(active_timers=timers)
     snap.selected_idx = 0
     r = c.handle(snap, ord("\n"), _ctx())
-    assert r.jump_to == 4
+    assert r.jump_to == 3
 
 
 def test_enter_empty():
@@ -88,7 +88,7 @@ def test_enter_with_stopwatch():
     snap = _snap(sw_active=True, sw_elapsed=100)
     snap.selected_idx = 0
     r = c.handle(snap, ord("\n"), _ctx())
-    assert r.jump_to == 5
+    assert r.jump_to == 4
 
 
 def test_enter_with_todo():
@@ -96,4 +96,4 @@ def test_enter_with_todo():
     snap = _snap(total_tasks=3, done_tasks=1)
     snap.selected_idx = 0
     r = c.handle(snap, ord("\n"), _ctx())
-    assert r.jump_to == 6
+    assert r.jump_to == 5

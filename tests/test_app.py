@@ -211,7 +211,9 @@ def test_timer_completion_shows_alert_and_resets(app):
     now = __import__("time").monotonic()
     from clock_tui.features.timers.model import Timer
 
-    t = Timer(name="Cafe", time=[0, 0, 5], active=True, remaining=0.0, last_tick=now - 10)
+    t = Timer(
+        name="Cafe", time=[0, 0, 5], active=True, remaining=0.0, last_tick=now - 10
+    )
     app.timers.timers = [t]
     app._tick()
     assert app._alert is not None
@@ -235,7 +237,9 @@ def test_alarm_fire_pospone(app, monkeypatch):
 
     monkeypatch.setattr(app_mod.datetime, "datetime", _FixedDT)
 
-    app.alarms.alarms = [Alarm(nombre="Despertar", hora=13, minutos=59, status="activado")]
+    app.alarms.alarms = [
+        Alarm(nombre="Despertar", hora=13, minutos=59, status="activado")
+    ]
     app.alarms._last_minute = (13, 58)
     app.alarms._fired_this_minute = set()
 
@@ -246,3 +250,209 @@ def test_alarm_fire_pospone(app, monkeypatch):
     assert app._alert is None
     assert len(app.alarms.snoozes) == 1
     assert app.alarms.snoozes[0].nombre == "Despertar"
+
+
+# ── Fase 5.5: dashboard jump / config commands / overlays ──
+
+
+def test_dashboard_jump_sets_selected_and_view(app):
+    from clock_tui.app.router import VIEW_TIMERS
+    from clock_tui.features.timers.model import Timer
+
+    app.timers.timers = [
+        Timer(name="T1", time=[0, 0, 1]),
+        Timer(name="T2", time=[0, 0, 2]),
+    ]
+
+    class Res:
+        jump_to = VIEW_TIMERS
+        jump_item = 1
+
+    app._handle_feature_result(Res())
+    assert app.router.current_view == VIEW_TIMERS
+    assert app.timers.selected_idx == 1
+
+
+def test_dashboard_refresh_weather(app, monkeypatch):
+    refreshed: list[int] = []
+    monkeypatch.setattr(app.weather, "request_refresh", lambda: refreshed.append(1))
+
+    class Res:
+        refresh_weather = True
+
+    app._handle_feature_result(Res())
+    assert refreshed == [1]
+
+
+def test_theme_changed_reinstalls_pairs(app):
+    app._pairs = {}
+
+    class Res:
+        theme_changed = True
+
+    app._handle_feature_result(Res())
+    assert app._pairs
+
+
+def test_command_weather_toggle_start_stop(app, monkeypatch):
+    started: list[int] = []
+    stopped: list[int] = []
+    monkeypatch.setattr(app.weather, "start", lambda: started.append(1))
+    monkeypatch.setattr(app.weather, "stop", lambda: stopped.append(1))
+
+    app.config["clima_activo"] = True
+    app._handle_command("weather_toggle")
+    assert started == [1]
+
+    app.config["clima_activo"] = False
+    app._handle_command("weather_toggle")
+    assert stopped == [1]
+
+
+def test_command_backup_creates_file(app, tmp_path, monkeypatch):
+    import clock_tui.app.app as app_mod
+
+    data = tmp_path / "data.json"
+    data.write_text('{"version": 7}', encoding="utf-8")
+    monkeypatch.setattr(app_mod.store_mod, "DATA_FILE", str(data))
+    monkeypatch.setattr(
+        app_mod.backup_data.__globals__["os"].path,
+        "expanduser",
+        lambda p: str(tmp_path),
+    )
+
+    alerts: list[tuple[str, str]] = []
+    monkeypatch.setattr(
+        app, "_show_alert", lambda title, msg: alerts.append((title, msg))
+    )
+
+    app._handle_command("backup")
+    backups = list(tmp_path.glob("clock_backup_*.json"))
+    assert len(backups) == 1
+    assert alerts and "Backup creado" in alerts[0][0]
+
+
+def test_command_sound_cycle(app, tmp_path, monkeypatch):
+    import clock_tui.app.app as app_mod
+
+    monkeypatch.setattr(app, "_audios_dir", lambda: str(tmp_path))
+    (tmp_path / "a.wav").write_text("x")
+    (tmp_path / "b.wav").write_text("x")
+    monkeypatch.setattr(app_mod, "try_beep", lambda p: None)
+    app.config["sonido_archivo"] = None
+
+    app._cycle_sound_file()
+    assert app.config["sonido_archivo"] == "a.wav"
+    app._cycle_sound_file()
+    assert app.config["sonido_archivo"] == "b.wav"
+
+
+def test_browser_esc_closes_at_root(app):
+    app._browser = {"mode": "restore", "cwd": "/", "idx": 0, "entries": []}
+    app._handle_browser_key(27)
+    assert app._browser is None
+
+
+def test_browser_enter_into_dir(app, tmp_path):
+    (tmp_path / "sub").mkdir()
+    app._browser = {
+        "mode": "restore",
+        "cwd": str(tmp_path),
+        "idx": 0,
+        "entries": [("sub", True)],
+    }
+    app._handle_browser_key(ord("\n"))
+    assert app._browser["cwd"] == str(tmp_path / "sub")
+
+
+def test_browser_up_navigate(app):
+    app._browser = {"mode": "restore", "cwd": "/work/x/sub", "idx": 0, "entries": []}
+    app._handle_browser_key(27)
+    assert app._browser["cwd"] == "/work/x"
+
+
+def test_sound_browser_select_sets_config_and_saves(app, tmp_path, monkeypatch):
+    saved: list[int] = []
+    monkeypatch.setattr(app, "_save_now", lambda: saved.append(1))
+    wav = tmp_path / "custom.wav"
+    wav.write_text("x")
+    app._browser = {
+        "mode": "sound",
+        "cwd": str(tmp_path),
+        "idx": 0,
+        "entries": [("custom.wav", False)],
+    }
+    app._handle_browser_key(ord("\n"))
+    assert app.config["sonido_custom_path"] == str(wav)
+    assert app.config["sonido_modo"] == "custom"
+    assert app._browser is None
+    assert saved == [1]
+
+
+def test_log_viewer_open_close_and_mark(app, monkeypatch):
+    import clock_tui.app.app as app_mod
+
+    entries = [{"ts": 100.0, "msg": "boom", "visto": False}]
+    marked: list[int] = []
+    monkeypatch.setattr(app_mod, "_log_read_all", lambda: list(entries))
+    monkeypatch.setattr(app_mod, "_log_mark_all_seen", lambda: marked.append(1))
+
+    app._open_log_viewer()
+    assert app._log_viewer is not None
+    assert app._log_viewer["entries"][0]["msg"] == "boom"
+    assert marked == [1]
+
+    app._handle_log_viewer_key(27)
+    assert app._log_viewer is None
+
+
+def test_log_export_writes_file(app, tmp_path, monkeypatch):
+    import clock_tui.app.app as app_mod
+
+    log = tmp_path / "clock_error.log"
+    log.write_text("error line", encoding="utf-8")
+    monkeypatch.setattr(app_mod, "LOG_FILE", str(log))
+    monkeypatch.setattr(
+        app_mod.os.path,
+        "expanduser",
+        lambda p: str(tmp_path / "out.txt") if p.startswith("~/") else p,
+    )
+
+    alerts: list[tuple[str, str]] = []
+    monkeypatch.setattr(
+        app, "_show_alert", lambda title, msg: alerts.append((title, msg))
+    )
+
+    app._export_log()
+    assert (tmp_path / "out.txt").read_text(encoding="utf-8") == "error line"
+    assert alerts and "Log exportado" in alerts[0][0]
+
+
+def test_log_export_missing_shows_alert(app, monkeypatch):
+    import clock_tui.app.app as app_mod
+
+    monkeypatch.setattr(app_mod, "LOG_FILE", "/no/existe.log")
+    alerts: list[tuple[str, str]] = []
+    monkeypatch.setattr(
+        app, "_show_alert", lambda title, msg: alerts.append((title, msg))
+    )
+
+    app._export_log()
+    assert alerts and "Sin log" in alerts[0][0]
+
+
+def test_render_with_browser_log_and_help(app):
+    app._browser = {
+        "mode": "sound",
+        "cwd": "/tmp",
+        "idx": 0,
+        "entries": [("a.wav", False)],
+    }
+    app._log_viewer = {
+        "entries": [{"ts": 1.0, "msg": "boo", "visto": True}],
+        "idx": 0,
+        "scroll": 0,
+    }
+    app.router.help_open = True
+    app._render()
+    assert app._log_viewer["scroll"] == 0

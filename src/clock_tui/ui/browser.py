@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import curses
 import os
 from typing import Any, Sequence
 

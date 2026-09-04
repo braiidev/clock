@@ -62,7 +62,7 @@ def test_activities_with_timers():
     assert len(acts) == 2
     assert "T1" in acts[0].label
     assert "T2" in acts[1].label
-    assert acts[0].target_view == 4
+    assert acts[0].target_view == 3
 
 
 def test_activities_with_stopwatch():
@@ -71,7 +71,7 @@ def test_activities_with_stopwatch():
     assert len(acts) == 1
     assert "Crono" in acts[0].label
     assert "01:01:01" in acts[0].label
-    assert acts[0].target_view == 5
+    assert acts[0].target_view == 4
 
 
 def test_activities_with_pending_tasks():
@@ -80,7 +80,7 @@ def test_activities_with_pending_tasks():
     assert len(acts) == 1
     assert "3" in acts[0].label
     assert "2/5" in acts[0].label
-    assert acts[0].target_view == 6
+    assert acts[0].target_view == 5
 
 
 def test_activities_with_snoozed():

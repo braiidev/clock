@@ -10,6 +10,12 @@ import datetime
 from dataclasses import dataclass, field
 from typing import Any
 
+from clock_tui.app.router import (
+    VIEW_ALARMS,
+    VIEW_STOPWATCH,
+    VIEW_TIMERS,
+    VIEW_TODO,
+)
 from clock_tui.core.time_utils import secs_to_hms
 from clock_tui.core.recurrence import _repeat_days_str
 
@@ -62,50 +68,64 @@ class DashboardSnapshot:
     def activities(self) -> list[ActivityRow]:
         rows: list[ActivityRow] = []
         if self.next_alarm is not None:
-            rows.append(ActivityRow(
-                label=_fmt_next_alarm(self.next_alarm, self.now),
-                target_view=2,
-                target_idx=0,
-            ))
+            rows.append(
+                ActivityRow(
+                    label=_fmt_next_alarm(self.next_alarm, self.now),
+                    target_view=VIEW_ALARMS,
+                    target_idx=0,
+                )
+            )
         for i, t in enumerate(self.active_timers[:3]):
             hh, mm, ss = secs_to_hms(t.get("remaining", 0))
             name = t.get("name", "Timer")
-            rows.append(ActivityRow(
-                label=f"\u23f1 {name}  {hh:02d}:{mm:02d}:{ss:02d}",
-                target_view=4,
-                target_idx=i,
-            ))
+            rows.append(
+                ActivityRow(
+                    label=f"\u23f1 {name}  {hh:02d}:{mm:02d}:{ss:02d}",
+                    target_view=VIEW_TIMERS,
+                    target_idx=t.get("idx", i),
+                )
+            )
         if len(self.active_timers) > 3:
-            rows.append(ActivityRow(
-                label=f"\u23f1 +{len(self.active_timers) - 3} m\u00e1s",
-                target_view=4,
-                target_idx=0,
-            ))
+            rows.append(
+                ActivityRow(
+                    label=f"\u23f1 +{len(self.active_timers) - 3} m\u00e1s",
+                    target_view=VIEW_TIMERS,
+                    target_idx=0,
+                )
+            )
         if self.sw_active:
             hh, mm, ss = secs_to_hms(int(self.sw_elapsed))
             cs = int((self.sw_elapsed - int(self.sw_elapsed)) * 100)
-            rows.append(ActivityRow(
-                label=f"\u25f7 Crono  {hh:02d}:{mm:02d}:{ss:02d}.{cs:02d}",
-                target_view=5,
-                target_idx=0,
-            ))
+            rows.append(
+                ActivityRow(
+                    label=f"\u25f7 Crono  {hh:02d}:{mm:02d}:{ss:02d}.{cs:02d}",
+                    target_view=VIEW_STOPWATCH,
+                    target_idx=0,
+                )
+            )
         pending = self.total_tasks - self.done_tasks
         if pending > 0:
-            rows.append(ActivityRow(
-                label=f"\u25a4 {pending} tareas pendientes ({self.done_tasks}/{self.total_tasks})",
-                target_view=6,
-                target_idx=0,
-            ))
+            rows.append(
+                ActivityRow(
+                    label=f"\u25a4 {pending} tareas pendientes ({self.done_tasks}/{self.total_tasks})",
+                    target_view=VIEW_TODO,
+                    target_idx=0,
+                )
+            )
         if self.snoozed_count > 0:
-            rows.append(ActivityRow(
-                label=f"\U0001f4a4 {self.snoozed_count} pospuesta(s)",
-                target_view=2,
-                target_idx=0,
-            ))
+            rows.append(
+                ActivityRow(
+                    label=f"\U0001f4a4 {self.snoozed_count} pospuesta(s)",
+                    target_view=VIEW_ALARMS,
+                    target_idx=0,
+                )
+            )
         return rows
 
     @staticmethod
-    def format_time(now: datetime.datetime, *, show_seconds: bool = True, format_24h: bool = True) -> str:
+    def format_time(
+        now: datetime.datetime, *, show_seconds: bool = True, format_24h: bool = True
+    ) -> str:
         if format_24h:
             fmt = "%H:%M:%S" if show_seconds else "%H:%M"
         else:
@@ -116,8 +136,18 @@ class DashboardSnapshot:
     def format_date(now: datetime.datetime) -> str:
         DIAS = ["Lun", "Mar", "Mi\u00e9", "Jue", "Vie", "S\u00e1b", "Dom"]
         MESES = [
-            "Ene", "Feb", "Mar", "Abr", "May", "Jun",
-            "Jul", "Ago", "Sep", "Oct", "Nov", "Dic",
+            "Ene",
+            "Feb",
+            "Mar",
+            "Abr",
+            "May",
+            "Jun",
+            "Jul",
+            "Ago",
+            "Sep",
+            "Oct",
+            "Nov",
+            "Dic",
         ]
         return f"{DIAS[now.weekday()]} {now.day} {MESES[now.month - 1]}"
 
@@ -126,9 +156,7 @@ def _fmt_next_alarm(alarm: dict, now: datetime.datetime) -> str:
     a = alarm
     rep = _repeat_days_str(a.get("repeat_days"))
     rep_txt = f" \u21bb{rep}" if rep != "una vez" else ""
-    alarm_dt = now.replace(
-        hour=a["hora"], minute=a["minutos"], second=0, microsecond=0
-    )
+    alarm_dt = now.replace(hour=a["hora"], minute=a["minutos"], second=0, microsecond=0)
     if alarm_dt <= now:
         alarm_dt += datetime.timedelta(days=1)
     diff = alarm_dt - now

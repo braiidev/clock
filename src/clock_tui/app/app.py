@@ -1,13 +1,15 @@
 """App principal: main loop curses que orquesta features, servicios y persistencia.
 
-Fase 5 (integración) — pasos 5.3 + 5.4:
+Fase 5 (integración) — pasos 5.3 + 5.4 + 5.5:
 - Bootstrap: carga de estado (store v7), construcción de modelos, tema/pares.
 - Main loop: input → Router → dispatch al controller de la feature activa →
   persistencia (needs_save) → render de la vista activa → quit.
 - Ticks de fondo: timers (countdown), alarmas + snoozes (check/check_snoozes),
   errores de persistencia → alert overlay modal con sonido en loop.
-- Los comandos del Config (backup/restore/log/sonido/theme) se integran en
-  el paso 5.5.
+- Resultados de features: saves, dashboard jump (Enter → vista + item),
+  refresh de clima (u), theme_changed, y comandos del Config
+  (backup/restore/log_view/log_export/weather_toggle/sound_browser/sound_cycle).
+- Overlays: file browser (restaurar/sonido), visor de log, help (?).
 """
 
 from __future__ import annotations
@@ -16,6 +18,7 @@ import curses
 import datetime
 import os
 import time
+from typing import Any
 
 from clock_tui.app.router import (
     VIEW_ALARMS,
@@ -28,10 +31,12 @@ from clock_tui.app.router import (
     Router,
 )
 from clock_tui.core import store as store_mod
+from clock_tui.core.log import LOG_FILE, _log_mark_all_seen, _log_read_all
 from clock_tui.core.store import pop_persistence_error
 from clock_tui.core.theme import (
     _ALERT_BLINK_PAIR_A,
     _ALERT_BLINK_PAIR_B,
+    _HELP_BG_PAIR,
     PAIR_CLIMA,
     PAIR_HELPERS,
     PAIR_MARCO,
@@ -48,17 +53,68 @@ from clock_tui.features.stopwatch import StopwatchController, StopwatchModel
 from clock_tui.features.timers import TimersController, TimersModel
 from clock_tui.features.todo import TodoController, TodoModel, todo_is_done
 from clock_tui.services import weather as weather_service
-from clock_tui.services.audio import AudioPlayer, resolve_sound_path
+from clock_tui.services.audio import (
+    _SOUND_EXTS,
+    AudioPlayer,
+    resolve_sound_path,
+    try_beep,
+)
+from clock_tui.services.backup import backup_data, restore_from_file
+from clock_tui.ui.browser import draw_browser, list_entries
 from clock_tui.ui.frame import draw_micro
-from clock_tui.ui.overlay import draw_alert
+from clock_tui.ui.overlay import draw_alert, draw_help, draw_log_viewer
 from clock_tui.ui.responsive import size_tier
+
+_GLOBAL_HELP_LINES = [
+    "q:salir   0-6:cambiar vista   []:ciclar vista   ?:esta ayuda",
+    "↑↓ ←→ hj kl: navegar   Esc:cancelar",
+    "n:nuevo   e:editar   d:borrar(con tecla)   Space:toggle/play   R:reset",
+]
 
 
 class ClockApp:
-    def __init__(self, stdscr: object) -> None:
+    _HELP_BY_VIEW: dict[int, list[str]] = {
+        0: [
+            "Vista de solo lectura: resumen de todo lo activo. Enter:ir a la fila, u:actualizar clima"
+        ],
+        1: ["↑↓:sección  ←→:alternar WC  n:+WC  e:editar  d:borrar  u:clima"],
+        2: ["n:nueva  ↑↓:nav  Space:on/off  e:editar  d:borrar"],
+        3: ["↑↓:fila  Tab:cicla  ←→:valor  Space:play/pause  R:reset"],
+        4: ["n:nuevo  ↑↓:nav  Tab:campo  ←→:valor  Space:play/pause  R:reset"],
+        5: ["Space:play/pause  Tab:marcar lap  d:borrar última  R:reset"],
+        6: ["←→:categoría  ↑↓:nav  Enter/Space:cambiar  Esc:cancelar edición"],
+    }
+
+    def __init__(self, stdscr: Any) -> None:
         self.stdscr = stdscr
         self.router = Router()
 
+        # Servicio de clima (thread en background).
+        self.weather = weather_service.WeatherService(
+            get_config=lambda k, d: self.config.get(k, d),
+            persist=self._persist_weather,
+        )
+        self._load_models_from_store()
+        self._restore_weather_cache()
+        if self.config.get("clima_activo", False):
+            self.weather.start()
+
+        # Pares fijos: alerta (rojo), help (blanco/negro); se inicializan una vez.
+        curses.init_pair(_ALERT_BLINK_PAIR_A, curses.COLOR_BLACK, curses.COLOR_RED)
+        curses.init_pair(_ALERT_BLINK_PAIR_B, curses.COLOR_RED, curses.COLOR_WHITE)
+        curses.init_pair(_HELP_BG_PAIR, curses.COLOR_WHITE, curses.COLOR_BLACK)
+
+        self._alert: dict[str, Any] | None = None
+        self._alert_blink_counter = 0
+        self._browser: dict[str, Any] | None = None
+        self._log_viewer: dict[str, Any] | None = None
+        self._audio_player = AudioPlayer(self._is_alert_active)
+        self._pairs = self._install_theme()
+
+    # ── Estado / models ──
+
+    def _load_models_from_store(self) -> None:
+        """(Re)construye config y modelos desde store. Reusable tras un restore."""
         loaded = store_mod.load()
         if loaded:
             data_alarms, data_timers, todos, saved_config, self.weather_cache = loaded
@@ -85,27 +141,24 @@ class ClockApp:
             self.todo.next_id = max(t.get("id", 0) for t in todos) + 1
         self.clock = ClockModel(wc_list=self._load_world_clocks())
 
-        # Servicio de clima.
-        self.weather = weather_service.WeatherService(
-            get_config=lambda k, d: self.config.get(k, d),
-            persist=self._persist_weather,
-        )
+    def _restore_weather_cache(self) -> None:
         if self.weather_cache:
             self.weather.restore_cache(
                 self.weather_cache.get("text"),
                 bool(self.weather_cache.get("ok", True)),
                 self.weather_cache.get("ts"),
             )
+
+    def _reload_after_restore(self) -> None:
+        """Recarga todo desde store tras restaurar un backup."""
+        self._audio_player.stop()
+        self.weather.stop()
+        self._browser = None
+        self._log_viewer = None
+        self._load_models_from_store()
+        self._restore_weather_cache()
         if self.config.get("clima_activo", False):
             self.weather.start()
-
-        # Pares fijos de alerta (rojo) y help (blanco/negro); se inicializan una vez.
-        curses.init_pair(_ALERT_BLINK_PAIR_A, curses.COLOR_BLACK, curses.COLOR_RED)
-        curses.init_pair(_ALERT_BLINK_PAIR_B, curses.COLOR_RED, curses.COLOR_WHITE)
-
-        self._alert: dict[str, object] | None = None
-        self._alert_blink_counter = 0
-        self._audio_player = AudioPlayer(self._is_alert_active)
         self._pairs = self._install_theme()
 
     # ── Config / theme ──
@@ -207,9 +260,13 @@ class ClockApp:
     # ── Input ──
 
     def _handle_key(self, key: int) -> bool:
-        # Negocio de teclas globales cuando hay alerta activa.
+        # Overlays modales tienen prioridad sobre el router.
         if self._alert is not None:
             return self._handle_alert_key(key)
+        if self._browser is not None:
+            return self._handle_browser_key(key)
+        if self._log_viewer is not None:
+            return self._handle_log_viewer_key(key)
         res = self.router.route(key, self._dispatch)
         if res.quit_app:
             return True
@@ -221,6 +278,54 @@ class ClockApp:
         needs_save = getattr(result, "needs_save", False)
         if needs_save:
             self._save_now()
+
+        jump_to = getattr(result, "jump_to", None)
+        if jump_to is not None:
+            self._handle_jump(int(jump_to), int(getattr(result, "jump_item", 0)))
+        if getattr(result, "refresh_weather", False):
+            self.weather.request_refresh()
+
+        if getattr(result, "theme_changed", False):
+            self._pairs = self._install_theme()
+
+        command = getattr(result, "command", None)
+        if command:
+            self._handle_command(str(command))
+
+    def _handle_jump(self, view: int, idx: int) -> None:
+        self.router.goto_view(view)
+        if view == VIEW_ALARMS and self.alarms.alarms:
+            self.alarms.selected_idx = min(idx, len(self.alarms.alarms) - 1)
+            self.alarms._clamp_scroll()
+        elif view == VIEW_TIMERS and self.timers.timers:
+            self.timers.selected_idx = min(idx, len(self.timers.timers) - 1)
+            self.timers._clamp_scroll()
+        elif view == VIEW_TODO and self.todo.todos:
+            self.todo.selected_idx = min(idx, len(self.todo.todos) - 1)
+            self.todo._clamp_scroll()
+
+    def _handle_command(self, command: str) -> None:
+        if command == "backup":
+            ok, dest = backup_data(store_mod.DATA_FILE)
+            self._show_alert(
+                "✓ Backup creado" if ok else "⚠ Backup falló",
+                f"Guardado en {dest}" if ok else dest,
+            )
+        elif command == "restore":
+            self._open_browser("restore")
+        elif command == "log_view":
+            self._open_log_viewer()
+        elif command == "log_export":
+            self._export_log()
+        elif command == "weather_toggle":
+            if self.config.get("clima_activo", False):
+                self.weather.start()
+            else:
+                self.weather.stop()
+        elif command == "sound_browser":
+            self._open_browser("sound")
+        elif command == "sound_cycle":
+            self._cycle_sound_file()
 
     # ── Alert overlay ──
 
@@ -297,6 +402,178 @@ class ClockApp:
             self._alert_blink_counter = 0
             self._alert["blink_state"] = int(self._alert["blink_state"]) ^ 1
 
+    # ── File browser (restore / sonido) ──
+
+    def _open_browser(self, mode: str) -> None:
+        if mode == "restore":
+            cwd = os.path.expanduser("~")
+        else:
+            actual = self.config.get("sonido_custom_path")
+            cwd = (
+                os.path.dirname(actual)
+                if actual and os.path.exists(os.path.dirname(actual))
+                else os.path.expanduser("~")
+            )
+        self._browser = {
+            "mode": mode,
+            "cwd": cwd,
+            "idx": 0,
+            "entries": list_entries(cwd, mode),
+        }
+
+    def _refresh_browser_entries(self) -> None:
+        if self._browser is not None:
+            self._browser["entries"] = list_entries(
+                str(self._browser["cwd"]), str(self._browser["mode"])
+            )
+            n = len(self._browser["entries"])
+            if int(self._browser["idx"]) >= n:
+                self._browser["idx"] = max(0, n - 1)
+
+    def _handle_browser_key(self, key: int) -> bool:
+        browser = self._browser
+        if browser is None:
+            return False
+        entries = list(browser["entries"])
+        n = len(entries)
+        if key == 27:
+            padre = os.path.dirname(str(browser["cwd"]))
+            if padre and padre != browser["cwd"]:
+                browser["cwd"] = padre
+                browser["idx"] = 0
+                self._refresh_browser_entries()
+            else:
+                self._browser = None
+            return False
+        if n == 0:
+            return False
+        if key == curses.KEY_DOWN:
+            browser["idx"] = (int(browser["idx"]) + 1) % n
+        elif key == curses.KEY_UP:
+            browser["idx"] = (int(browser["idx"]) - 1) % n
+        elif key in (ord("\n"), 10, 13):
+            nombre, es_dir = entries[int(browser["idx"])]
+            full = os.path.join(str(browser["cwd"]), nombre)
+            if es_dir:
+                browser["cwd"] = full
+                browser["idx"] = 0
+                self._refresh_browser_entries()
+            elif browser["mode"] == "restore":
+                self._restore_from_browser(full)
+            else:
+                self.config["sonido_custom_path"] = full
+                self.config["sonido_modo"] = "custom"
+                self._browser = None
+                self._audio_player.stop()
+                if self.config.get("sonido", True):
+                    try_beep(full)
+                self._save_now()
+        return False
+
+    def _restore_from_browser(self, path: str) -> None:
+        ok, msg, _contenido = restore_from_file(path, store_mod.DATA_FILE)
+        self._browser = None
+        if not ok:
+            self._show_alert("⚠ Restaurar falló", msg)
+            return
+        self._reload_after_restore()
+        self._show_alert("✓ Backup restaurado", "Datos recargados.")
+
+    def _render_browser(self) -> None:
+        browser = self._browser
+        if browser is None:
+            return
+        draw_browser(
+            self.stdscr,
+            list(browser["entries"]),
+            str(browser["cwd"]),
+            int(browser["idx"]),
+            str(browser["mode"]),
+            self._pairs,
+        )
+
+    # ── Log viewer ──
+
+    def _open_log_viewer(self) -> None:
+        self._log_viewer = {
+            "entries": list(reversed(_log_read_all())),
+            "idx": 0,
+            "scroll": 0,
+        }
+        _log_mark_all_seen()
+
+    def _handle_log_viewer_key(self, key: int) -> bool:
+        viewer = self._log_viewer
+        if viewer is None:
+            return False
+        n = len(viewer["entries"])
+        if key in (27, ord(" "), ord("\n"), 10, 13):
+            self._log_viewer = None
+            return False
+        if n == 0:
+            return False
+        if key == curses.KEY_DOWN:
+            viewer["idx"] = min(int(viewer["idx"]) + 1, n - 1)
+        elif key == curses.KEY_UP:
+            viewer["idx"] = max(int(viewer["idx"]) - 1, 0)
+        return False
+
+    def _render_log_viewer(self) -> None:
+        viewer = self._log_viewer
+        if viewer is None:
+            return
+        viewer["scroll"] = draw_log_viewer(
+            self.stdscr,
+            list(viewer["entries"]),
+            int(viewer["idx"]),
+            int(viewer["scroll"]),
+            curses.color_pair(_HELP_BG_PAIR),
+        )
+
+    def _export_log(self) -> None:
+        if not os.path.exists(LOG_FILE):
+            self._show_alert("⚠ Sin log", "Todavía no hay errores registrados.")
+            return
+        dest = os.path.expanduser("~/clock_error_log.txt")
+        try:
+            with open(LOG_FILE, "r", encoding="utf-8") as f:
+                contenido = f.read()
+            with open(dest, "w", encoding="utf-8") as f:
+                f.write(contenido)
+            _log_mark_all_seen()
+            self._show_alert("✓ Log exportado", f"Guardado en {dest}")
+        except OSError as e:
+            self._show_alert("⚠ Exportar falló", str(e.strerror or e))
+
+    # ── Sonido ──
+
+    def _cycle_sound_file(self) -> None:
+        d = self._audios_dir()
+        archivos = (
+            sorted(f for f in os.listdir(d) if f.lower().endswith(_SOUND_EXTS))
+            if os.path.isdir(d)
+            else []
+        )
+        actual = self.config.get("sonido_archivo")
+        opciones = [None] + archivos
+        try:
+            idx = opciones.index(actual)
+        except ValueError:
+            idx = 0
+        self.config["sonido_archivo"] = opciones[(idx + 1) % len(opciones)]
+        if self.config.get("sonido", True):
+            try_beep(resolve_sound_path(self.config, d))
+
+    # ── Help overlay ──
+
+    def _render_help(self) -> None:
+        draw_help(
+            self.stdscr,
+            self._HELP_BY_VIEW.get(self.router.view_index(), []),
+            _GLOBAL_HELP_LINES,
+            curses.color_pair(_HELP_BG_PAIR),
+        )
+
     def _dispatch(self, view: int, key: int) -> object:
         if view == VIEW_DASHBOARD:
             snap = self._build_dashboard_snapshot()
@@ -325,8 +602,8 @@ class ClockApp:
             weather_line=self._weather_display_line(),
             next_alarm=self._next_alarm_data(),
             active_timers=[
-                {"name": t.name, "remaining": t.remaining}
-                for t in self.timers.timers
+                {"name": t.name, "remaining": t.remaining, "idx": i}
+                for i, t in enumerate(self.timers.timers)
                 if t.active
             ],
             sw_active=self.stopwatch.active,
@@ -383,9 +660,7 @@ class ClockApp:
         # Alarmas
         fired = self.alarms.check(now)
         for a, title in fired:
-            self._show_alert(
-                f"◷  {a.nombre}", title, posponable=True, alarm_ref=a
-            )
+            self._show_alert(f"◷  {a.nombre}", title, posponable=True, alarm_ref=a)
 
         # Snoozes
         snoozed = self.alarms.check_snoozes(now)
@@ -407,6 +682,12 @@ class ClockApp:
         else:
             self._render_view()
             self._render_footer()
+            if self._log_viewer is not None:
+                self._render_log_viewer()
+            if self._browser is not None:
+                self._render_browser()
+            if self.router.help_open:
+                self._render_help()
         self._render_alert_overlay()
 
     def _render_alert_overlay(self) -> None:
@@ -451,22 +732,16 @@ class ClockApp:
             VIEW_CONFIG: (self.config_model, "config"),
         }
         model, name = specs[view]
-        _VIEWS[name].render(
-            self.stdscr, model, theme={}, pairs=pairs, config=cfg
-        )
+        _VIEWS[name].render(self.stdscr, model, theme={}, pairs=pairs, config=cfg)
 
     def _render_footer(self) -> None:
         from clock_tui.ui.frame import Painter
 
         painter = Painter(self.stdscr)
         h, w = painter.size
-        names = [
-            "Dash", "Reloj", "Alarm", "Timer", "Crono", "ToDo", "Conf"
-        ]
+        names = ["Dash", "Reloj", "Alarm", "Timer", "Crono", "ToDo", "Conf"]
         cur = self.router.view_index()
-        tabs = " . ".join(
-            (f"{n}" if i == cur else n) for i, n in enumerate(names)
-        )
+        tabs = " . ".join((f"{n}" if i == cur else n) for i, n in enumerate(names))
         footer = f"-- {self._clock_str()} --  {tabs}  q"
         x = max(0, (w - len(footer)) // 2)
         for ch_i, ch in enumerate(footer):
@@ -474,7 +749,7 @@ class ClockApp:
                 painter.safe(h - 1, x + ch_i, ch, self._pairs["nav"])
 
 
-def _import_views() -> dict[str, object]:
+def _import_views() -> dict[str, Any]:
     from clock_tui.features.alarms import view as alarms
     from clock_tui.features.clock import view as clock
     from clock_tui.features.config import view as config
