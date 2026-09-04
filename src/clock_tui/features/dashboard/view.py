@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import Any
 
 from clock_tui.ui.frame import draw_frame
-from clock_tui.ui.responsive import size_tier, Tier
+from clock_tui.ui.responsive import size_tier
 
 from .model import DashboardSnapshot
 
@@ -24,9 +24,10 @@ def render(
 ) -> None:
     mostrar_marco = config.get("mostrar_marco", True)
     mostrar_helpers = config.get("mostrar_helpers", True)
-    tier = size_tier()
+    sh, sw = stdscr.getmaxyx()
+    tier = size_tier(sh, sw)
 
-    if tier == Tier.MINIMUM:
+    if tier == "micro":
         _render_minimum(stdscr, snap, pairs=pairs, mostrar_marco=mostrar_marco)
         return
 

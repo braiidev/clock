@@ -1,15 +1,14 @@
 # TODO
 
 ## Doing
-- [ ] Fase 5.4: app.py — ticks de fondo (timers/alarmas/snooze) + alert overlay + audio - v0.15
+- [ ] Fase 5.5: app.py — dashboard jump/refresh + config commands (theme/weather/sound) - v0.16
 
 ## Next
-- [ ] Fase 5.4: app.py — ticks de fondo (timers/alarmas/snooze) + alert overlay + audio - v0.15
-- [ ] Fase 5.5: app.py — dashboard jump/refresh + config commands (theme/weather/sound) - v0.16
 - [ ] Fase 5.6: main.py funcional + pyproject script + verificación manual - v0.17
 - [ ] Fase 6: tests + validación manual - v0.18
 
 ## Done
+- [x] Fase 5.4: app.py — ticks de fondo (timers/alarmas/snooze) + alert overlay + audio - v0.15
 - [x] Fase 5.3: app.py — bootstrap + persistencia + main loop + dispatch + render + quit - v0.14
 - [x] Fase 5.2: unificar firma de view.render (theme, pairs, config) según D15 - v0.13
 - [x] Fase 5.1: router global de navegación (módulo puro + 16 tests) - v0.12

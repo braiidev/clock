@@ -1,20 +1,23 @@
 """App principal: main loop curses que orquesta features, servicios y persistencia.
 
-Fase 5 (integración) — paso 5.3:
+Fase 5 (integración) — pasos 5.3 + 5.4:
 - Bootstrap: carga de estado (store v7), construcción de modelos, tema/pares.
 - Main loop: input → Router → dispatch al controller de la feature activa →
   persistencia (needs_save) → render de la vista activa → quit.
-- Los ticks de fondo (timers/alarmas), el alert overlay y los comandos del
-  Config (backup/restore/log/sonido) se integran en pasos 5.4 / 5.5.
+- Ticks de fondo: timers (countdown), alarmas + snoozes (check/check_snoozes),
+  errores de persistencia → alert overlay modal con sonido en loop.
+- Los comandos del Config (backup/restore/log/sonido/theme) se integran en
+  el paso 5.5.
 """
 
 from __future__ import annotations
 
 import curses
 import datetime
+import os
+import time
 
 from clock_tui.app.router import (
-    NUM_VIEWS,
     VIEW_ALARMS,
     VIEW_CLOCK,
     VIEW_CONFIG,
@@ -25,7 +28,10 @@ from clock_tui.app.router import (
     Router,
 )
 from clock_tui.core import store as store_mod
+from clock_tui.core.store import pop_persistence_error
 from clock_tui.core.theme import (
+    _ALERT_BLINK_PAIR_A,
+    _ALERT_BLINK_PAIR_B,
     PAIR_CLIMA,
     PAIR_HELPERS,
     PAIR_MARCO,
@@ -42,7 +48,9 @@ from clock_tui.features.stopwatch import StopwatchController, StopwatchModel
 from clock_tui.features.timers import TimersController, TimersModel
 from clock_tui.features.todo import TodoController, TodoModel, todo_is_done
 from clock_tui.services import weather as weather_service
+from clock_tui.services.audio import AudioPlayer, resolve_sound_path
 from clock_tui.ui.frame import draw_micro
+from clock_tui.ui.overlay import draw_alert
 from clock_tui.ui.responsive import size_tier
 
 
@@ -91,6 +99,13 @@ class ClockApp:
         if self.config.get("clima_activo", False):
             self.weather.start()
 
+        # Pares fijos de alerta (rojo) y help (blanco/negro); se inicializan una vez.
+        curses.init_pair(_ALERT_BLINK_PAIR_A, curses.COLOR_BLACK, curses.COLOR_RED)
+        curses.init_pair(_ALERT_BLINK_PAIR_B, curses.COLOR_RED, curses.COLOR_WHITE)
+
+        self._alert: dict[str, object] | None = None
+        self._alert_blink_counter = 0
+        self._audio_player = AudioPlayer(self._is_alert_active)
         self._pairs = self._install_theme()
 
     # ── Config / theme ──
@@ -139,11 +154,11 @@ class ClockApp:
         curses.init_pair(PAIR_HELPERS, paleta["helpers"], -1)
         curses.init_pair(PAIR_NAV, paleta["nav"], -1)
         return {
-            "marco": PAIR_MARCO,
-            "texto": PAIR_TEXTO,
-            "clima": PAIR_CLIMA,
-            "helpers": PAIR_HELPERS,
-            "nav": PAIR_NAV,
+            "marco": curses.color_pair(PAIR_MARCO),
+            "texto": curses.color_pair(PAIR_TEXTO),
+            "clima": curses.color_pair(PAIR_CLIMA),
+            "helpers": curses.color_pair(PAIR_HELPERS),
+            "nav": curses.color_pair(PAIR_NAV),
         }
 
     # ── Persistencia ──
@@ -172,16 +187,19 @@ class ClockApp:
         self.stdscr.keypad(1)
         try:
             while True:
+                if self._alert is None:
+                    perr = pop_persistence_error()
+                    if perr:
+                        self._show_alert("⚠ Persistencia", perr)
                 key = self.stdscr.getch()
                 if key != -1:
                     if self._handle_key(key):
                         break
                 self._tick()
                 self._render()
-                import time
-
                 time.sleep(0.03)
         finally:
+            self._audio_player.stop()
             self.weather.stop()
             self._save_now()
             curses.curs_set(1)
@@ -189,6 +207,9 @@ class ClockApp:
     # ── Input ──
 
     def _handle_key(self, key: int) -> bool:
+        # Negocio de teclas globales cuando hay alerta activa.
+        if self._alert is not None:
+            return self._handle_alert_key(key)
         res = self.router.route(key, self._dispatch)
         if res.quit_app:
             return True
@@ -200,6 +221,81 @@ class ClockApp:
         needs_save = getattr(result, "needs_save", False)
         if needs_save:
             self._save_now()
+
+    # ── Alert overlay ──
+
+    def _is_alert_active(self) -> bool:
+        return self._alert is not None
+
+    def _show_alert(
+        self,
+        title: str,
+        msg: str,
+        *,
+        posponable: bool = False,
+        alarm_ref: object | None = None,
+    ) -> None:
+        self._audio_player.stop()
+        self._alert = {
+            "title": title,
+            "msg": msg,
+            "blink_state": 0,
+            "posponable": posponable,
+            "alarm_ref": alarm_ref,
+        }
+        self._alert_blink_counter = 0
+        if self.config.get("sonido", True):
+            self._start_alert_audio()
+
+    def _start_alert_audio(self) -> None:
+        path = resolve_sound_path(self.config, self._audios_dir())
+        self._audio_player.start_loop(path)
+
+    def _audios_dir(self) -> str:
+        return os.path.join(store_mod.CONFIG_DIR, "sounds")
+
+    def _dismiss_alert(self) -> None:
+        ref = (self._alert or {}).get("alarm_ref")
+        if ref is not None and hasattr(ref, "total_secs"):
+            # Timer completado → reiniciar al cerrar con Space/Enter.
+            ref.active = False
+            ref.remaining = float(ref.total_secs())
+            ref.last_tick = None
+        self._alert = None
+        self._audio_player.stop()
+
+    def _postpone_alert(self) -> None:
+        if self._alert is None or not self._alert.get("posponable"):
+            return
+        mins = int(self.config.get("alarma_posponer_min", 5))
+        ref = self._alert.get("alarm_ref")
+        nombre = "Alarma"
+        if ref is not None:
+            nombre = getattr(ref, "nombre", "Alarma")[:20]
+        self.alarms.create_snooze(nombre, mins)
+        self._alert = None
+        self._audio_player.stop()
+        self._save_now()
+
+    def _handle_alert_key(self, key: int) -> bool:
+        if self._alert is None:
+            return False
+        if key in (ord(" "), ord("\n"), 10, 13):
+            self._dismiss_alert()
+        elif key == 27:
+            self._alert = None
+            self._audio_player.stop()
+        elif key in (ord("p"), ord("P")) and self._alert.get("posponable"):
+            self._postpone_alert()
+        return False
+
+    def _tick_alert(self) -> None:
+        if self._alert is None:
+            return
+        self._alert_blink_counter += 1
+        if self._alert_blink_counter >= 6:
+            self._alert_blink_counter = 0
+            self._alert["blink_state"] = int(self._alert["blink_state"]) ^ 1
 
     def _dispatch(self, view: int, key: int) -> object:
         if view == VIEW_DASHBOARD:
@@ -265,28 +361,64 @@ class ClockApp:
             return None
         ok, text, _epoch, retry_count, retry_deadline = self.weather.snapshot()
         if retry_count and retry_deadline is not None:
-            import time as _t
-
-            secs = max(0, int(retry_deadline - _t.monotonic()))
+            secs = max(0, int(retry_deadline - time.monotonic()))
             return f"* [!] Reintento {retry_count}/{self.config.get('clima_retry_max', 3)} ({secs}s)"
         if text is None:
             return "* Clima: cargando..."
         return f"{'' if ok else '[!] '}{text}"
 
-    # ── Ticks (paso 5.4) ──
+    # ── Ticks de fondo ──
 
     def _tick(self) -> None:
-        pass
+        now = datetime.datetime.now()
+
+        # Timers countdown
+        completed = self.timers.tick()
+        for i in completed:
+            t = self.timers.timers[i]
+            h, m, s = t.time
+            dur = f"{h:02d}:{m:02d}:{s:02d}" if h else f"{m:02d}:{s:02d}"
+            self._show_alert(f"⏱  {t.name}", f"Completado — {dur}", alarm_ref=t)
+
+        # Alarmas
+        fired = self.alarms.check(now)
+        for a, title in fired:
+            self._show_alert(
+                f"◷  {a.nombre}", title, posponable=True, alarm_ref=a
+            )
+
+        # Snoozes
+        snoozed = self.alarms.check_snoozes(now)
+        for s, title in snoozed:
+            self._show_alert(
+                f"◷  {s.nombre} (pospuesta)", title, posponable=True, alarm_ref=s
+            )
+
+        # Blink del overlay activo
+        self._tick_alert()
 
     # ── Render ──
 
     def _render(self) -> None:
-        tier = size_tier()
+        sh, sw = self.stdscr.getmaxyx()
+        tier = size_tier(sh, sw)
         if tier == "micro":
             draw_micro(self.stdscr, self._clock_str(), self._pairs["texto"])
+        else:
+            self._render_view()
+            self._render_footer()
+        self._render_alert_overlay()
+
+    def _render_alert_overlay(self) -> None:
+        if self._alert is None:
             return
-        self._render_view()
-        self._render_footer()
+        draw_alert(
+            self.stdscr,
+            self._alert,
+            curses.color_pair(_ALERT_BLINK_PAIR_A),
+            curses.color_pair(_ALERT_BLINK_PAIR_B),
+            int(self.config.get("alarma_posponer_min", 5)),
+        )
 
     def _clock_str(self) -> str:
         return ClockModel.format_local_time(
