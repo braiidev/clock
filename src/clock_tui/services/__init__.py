@@ -1,3 +1,5 @@
 """Servicios de fondo: clima, audio y backup."""
 
-__all__: list[str] = []
+from . import audio, backup, weather
+
+__all__ = ["audio", "backup", "weather"]
