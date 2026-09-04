@@ -21,6 +21,9 @@ entre la documentación previa. Es la única fuente de verdad;
 | D10 | Responsive: **2 tiers** (micro / full), sin `minimum` |
 | D11 | Alarmas: **vista separada** (no dentro de Reloj) |
 | D12 | Persistencia: **`data.json` + version 7**, migración automática desde `clock_data.json` v6 |
+| D13 | Clima: **solo en el Dashboard** (no en la vista Reloj) |
+| D14 | Badge de actividad: **eliminado** → overlay bajo demanda con `o` (teclado global); se elimina `badge_modo` de config |
+| D15 | Config = **contrato global** que todas las vistas consumen (marco/helpers globales, editables solo en Config) |
 
 ---
 
@@ -84,7 +87,7 @@ clock-tui/
 - Marco con `draw_box` (si `mostrar_marco`).
 - Contenido centrado dentro del marco.
 - Helpers debajo del marco (si `mostrar_helpers`).
-- Badge de actividad sobre el footer.
+- Actividad **bajo demanda** con la tecla global `o` (overlay de actividad); no hay badge permanente.
 - Footer con modo + tab bar expandido.
 - Listas con scroll e indicador `(1–6 de 12)`.
 - Texto que excede el ancho → ellipsis.
@@ -163,21 +166,61 @@ clock-tui/
 ### Específicas por vista
 | Vista | Tecla | Acción |
 |---|---|---|
-| Reloj | `u` | Refresh clima manual |
+| Dashboard | `u` | Refresh clima manual |
 | Reloj | `f` | Filtro en picker de WC |
 | Cronómetro | `m` | Marcar lap (solo corriendo) |
 | ToDo | `x` | Toggle recordatorio |
 | Config | `←→` | Cambiar categoría/tab |
 
+### Global adicional
+| Tecla | Acción |
+|---|---|
+| `o` | Overlay de actividad (badge bajo demanda, todas las actividades activas agrupadas) |
+
 ### Eliminadas / libres
 - `n` (nuevo) → reemplazada por `a`.
 - `R` (reset global) → no existe, solo `r`.
-- `o` (panel notas) → eliminado. **Queda libre.**
 - `Tab` (lap en crono) → reemplazada por `m`; `Tab` se reserva para sub-campos.
+- `o` (panel notas) → eliminado. Se **reasigna** al overlay de actividad (badge global).
 
 ---
 
 ## 5. Vistas
+
+### Contrato de configuración global
+
+La vista Config no es un feature aislado: define un **contrato global** que
+todas las vistas consumen en su render. Cada `view.py` consulta este contrato
+(no lee `config[]` directamente). Esto evita repetir lógica cuando un toggle
+afecta a varias vistas.
+
+| Clave | Tipo | Alcance | Efecto | Consumida por |
+|---|---|---|---|---|
+| `mostrar_marco` | bool | global | Muestra/oculta el marco en todas las vistas | todas las vistas |
+| `mostrar_helpers` | bool | global | Muestra/oculta la línea de teclas de ayuda | todas las vistas |
+| `tema` | choice | global | Paleta de colores | todas las vistas |
+| `custom_color_{marco,texto,clima,helpers,nav}` | choice | global (solo si tema=custom) | Colores del tema custom | todas las vistas |
+| `alarma_posponer_min` | choice | global | Minutos de posponer en el overlay de alerta | overlay de alerta |
+| `sonido`, `sonido_modo`, `sonido_archivo`, `sonido_custom_path` | — | global | Audio del overlay de alerta | overlay de alerta |
+| `clima_*` | — | vista Dashboard | Configuración y render del clima | Dashboard |
+| `mostrar_segundos`, `formato_24h` | bool | vista Reloj | Formato del reloj local | Reloj, Dashboard |
+| `wc_mostrar` | choice | vista Reloj | Mostrar/ocultar la línea de relojes mundiales | Reloj |
+| `alarmas_mostrar` | choice | global | Mostrar/ocultar alarmas en el overlay de actividad | overlay de actividad `<o>` |
+| `badge_modo` | **eliminado** | — | Reemplazado por el overlay de actividad `<o>` | — |
+
+**Notas clave:**
+- `mostrar_marco` y `mostrar_helpers` son **globales** pero se editan SOLO en la
+  vista Config. Cada `view.py` los consulta vía el contrato compartido.
+- El badge permanente (inline/detallado) se **elimina**: pasa a un **overlay de
+  actividad bajo demanda** con la tecla global `o`. Agrupa timers activos,
+  crono, alarmas activas (`alarmas_mostrar`) y tareas pendientes. Disponible en
+  cualquier vista excepto Dashboard (donde ya se ven todas).
+- El clima **solo se muestra en el Dashboard** (no en Reloj).
+
+**Implementación:** el paquete expone un objeto `Config` (o dict tipado) que
+centraliza estos valores y defaults. Las vistas reciben ese objeto en su
+`view.py` y leen las claves que les correspondan. La vista Config lo edita y
+persiste vía `store.save`.
 
 ### Vista 0 — Dashboard
 Resumen de solo lectura: fecha+hora, clima, próxima alarma (countdown), timers activos, crono activo, tareas pendientes, pospuestas.
@@ -196,10 +239,10 @@ Resumen de solo lectura: fecha+hora, clima, próxima alarma (countdown), timers 
 │                                      │
 └──────────────────────────────────────┘
 ```
-**`Enter` (D9):** salta a la vista correspondiente con el item seleccionado. El Dashboard mantiene un `selected_item_idx` que mapea a `(vista, item_idx)`. Sub-vistas: ninguna.
+**`Enter` (D9):** salta a la vista correspondiente con el item seleccionado. El Dashboard mantiene un `selected_item_idx` que mapea a `(vista, item_idx)`. Tecla `u`: refresh clima manual. Sub-vistas: ninguna.
 
 ### Vista 1 — Reloj
-Reloj local centrado + gestión de relojes mundiales + clima. Teclas: `↑↓` sección, `←→` WC, `a`+WC, `e` editar, `d` borrar, `u` clima.
+Reloj local centrado + gestión de relojes mundiales. **Sin clima**: el clima solo se muestra en el Dashboard (decisión de producto). Teclas: `↑↓` sección, `←→` WC, `a`+WC, `e` editar, `d` borrar.
 
 ```
 ┌──────────────────────────────────────┐
@@ -207,10 +250,10 @@ Reloj local centrado + gestión de relojes mundiales + clima. Teclas: `↑↓` s
 │                                      │
 │     Lun 16 Jun  14:32:05             │
 │                                      │
-│  »BUE 14:32«  NY 13:32  LON 18:32    │
+│  »BUE 14:32«  NY 13:32  LON 18:32   │
 │                                      │
 └──────────────────────────────────────┘
-  ↑↓:sección  ←→:WC  a:+WC  e:editar  d:borrar  u:clima
+  ↑↓:sección  ←→:WC  a:+WC  e:editar  d:borrar
 ```
 Sub-vistas: Picker de zona (~47 zonas IANA ordenadas por offset, filtro `f`, máx 10 visibles con scroll) → Editor de apodo (muestra zona + diff UTC, input libre) → Confirmación borrado.
 
@@ -314,11 +357,13 @@ Tabs por categoría + items configurables. Teclas: `←→` tab, `↑↓` nav, `
 ```
 
 Categorías:
-- **Apariencia:** Tema (clasico/mono/calido/alto_contraste/custom), colores custom (marco, texto, clima, helpers, nav), mostrar marco, mostrar helpers.
-- **Reloj:** Mostrar segundos, formato 24h, posponer alarma (min), badge modo, mostrar WC, mostrar alarmas.
-- **Clima:** Mostrar clima, ubicación, intervalo auto-update, mostrar "hace N min", reintentos máx, espera entre reintentos.
-- **Sonido:** Sonido ON/OFF, origen (default/custom), archivo default, archivo custom (browser).
-- **Data:** Crear backup, restaurar backup, ver log de errores, exportar log.
+- **Apariencia:** Tema (clasico/mono/calido/alto_contraste/custom), colores custom (marco, texto, clima, helpers, nav), mostrar marco, mostrar helpers. *(globales)*
+- **Reloj:** Mostrar segundos, formato 24h, posponer alarma (min, afecta el overlay de alerta), mostrar WC, mostrar alarmas en el overlay de actividad. *(mostrar_segundos/formato_24h/wc_mostrar afectan a Reloj; posponer y alarmas_mostrar son globales)*
+- **Clima:** Mostrar clima, ubicación, intervalo auto-update, mostrar "hace N min", reintentos máx, espera entre reintentos. *(afecta solo al Dashboard)*
+- **Sonido:** Sonido ON/OFF, origen (default/custom), archivo default, archivo custom (browser). *(afecta el overlay de alerta)*
+- **Data:** Crear backup, restaurar backup, ver log de errores, exportar log. *(acciones, no config)*
+
+> **Nota:** `badge_modo` quedó **eliminado** (fue reemplazado por el overlay de actividad `<o>`).
 
 Tipos de item: `bool` (toggle ✔/✘), `choice` (cicla), `text` (editor inline), `soundfile` (cicla archivos de `~/.config/clock/sounds/`), `soundbrowser` (abre browser), `soundmode` (cicla default↔custom), `action` (ejecuta).
 
@@ -441,7 +486,6 @@ En modo normal: pausa/reanuda timers y crono. No afecta alarmas. Estado en `_glo
     "clima_retry_segs": 60,
     "tema": "clasico",
     "alarma_posponer_min": 5,
-    "badge_modo": "inline",
     "wc_mostrar": "ver",
     "alarmas_mostrar": "ver",
     "world_clocks": []
@@ -478,4 +522,4 @@ Orden de features por complejidad: stopwatch (más simple, valida el patrón), t
 | # | Item | Prioridad |
 |---|---|---|
 | O1 | Migrar clima de wttr.in a Open-Meteo | Baja (post-v1) |
-| O3 | Badge de actividad en modo micro | Baja |
+| O3 | ~~Badge de actividad en modo micro~~ → eliminado: el badge es ahora overlay bajo demanda, no hay badge permanente | Baja |
