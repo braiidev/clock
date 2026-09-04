@@ -1,5 +1,10 @@
-"""Feature clock (vista Reloj + relojes mundiales)."""
+"""Feature reloj (hora local + relojes mundiales).
 
-from . import world_zones
+Sin clima (D13): el clima solo se muestra en el Dashboard.
+Los relojes mundiales se gestionan como lista (CLOCK.md §5 vista 1).
+"""
 
-__all__ = ["world_zones"]
+from .controller import ClockController
+from .model import ClockModel, WorldClock
+
+__all__ = ["ClockModel", "ClockController", "WorldClock"]
