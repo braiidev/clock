@@ -1,11 +1,11 @@
 # TODO
 
 ## Doing
-- [ ] v1.1.4: doc CLOCK.md (instalación/actualización/desinstalación, convención de versionado) + push a braiidev/clock - v0.25
 
 ## Next
 
 ## Done
+- [x] v1.1.4: doc CLOCK.md (instalación/actualización/desinstalación, convención de versionado) + push a braiidev/clock - v0.25
 - [x] v1.1.3: Config → Sistema → "Comprobar actualización" + toast de versión nueva al entrar - v0.24
 - [x] v1.1.2: CLI `clock --update/--uninstall/--check-update/--version` + `install.sh` (curl|bash sin sudo) - v0.23
 - [x] v1.1.1: módulo `update.py` (check/do, por commits) + tests con fixture git local - v0.22

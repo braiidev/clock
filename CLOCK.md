@@ -1,7 +1,7 @@
 # CLOCK — Documento único del proyecto
 
 Guía de referencia del refactor de un TUI en curses (~4.3k líneas) a un paquete
-instalable **`clock-tui` v1.0**. Este documento consolida y resuelve las discrepancias
+instalable **`clock-tui` v1.1** (con instalador `curl|bash` y self-update). Este documento consolida y resuelve las discrepancias
 entre la documentación previa. Es la única fuente de verdad;
 ---
 
@@ -26,6 +26,7 @@ entre la documentación previa. Es la única fuente de verdad;
 | D15 | Config = **contrato global** que todas las vistas consumen (marco/helpers globales, editables solo en Config) |
 | D16 | `edit_state` de alarmas lo **posee la app** (`self._alarm_edit`) y se comparte controller↔vista; el dict no se recrea por tecla |
 | D17 | `KEY_RESIZE` se maneja en el loop (`_on_resize`: clear+refresh) y cada `_render` relee `getmaxyx`; tier micro degrada sin marco |
+| D18 | Self-update: instalación desde clone git (`install.sh`, `curl|bash`, sin sudo) + actualización **por commits** (`git rev-list --count HEAD..origin/main`), inmune al defasaje entre contador de tasks (`v0.N`) y semver de producto (`v1.y.z`) |
 
 ---
 
@@ -530,7 +531,7 @@ Orden de features por complejidad: stopwatch (más simple, valida el patrón), t
 
 ## 12. Estado de validación (fases 5-6)
 
-Implementación completa del refactor, **milestone v1.0**. Suite: `375` tests (pytest) · pyright 0 errores · black. Monolito original eliminado (`clock.py`).
+Implementación completa del refactor, **milestone v1.0** + self-update **v1.1**. Suite: `400` tests (pytest) · pyright 0 errores · black. Monolito original eliminado (`clock.py`).
 
 - **Flows e2e por dispatch** (test_app.py): edición completa de alarma (nombre→hora→días→guardar con `needs_save`), alta de timers/todo/clock-picker, ciclo de tema en Config (reinstala pairs), roundtrip `save_now→store→load`, render micro-tier.
 - **Overlays** (test_overlay.py): `draw_alert`/`draw_help`/`draw_log_viewer` en full y tamaños mínimos, scroll válido.
@@ -539,3 +540,40 @@ Implementación completa del refactor, **milestone v1.0**. Suite: `375` tests (p
 
 ### Bug corregido en fase 6.1
 El `edit_state` de alarmas se creaba vacío en cada tecla (`es = edit_state or {}` descarta un dict vacío) → la edición no persistía. La app ahora es dueña de `self._alarm_edit` y `es = edit_state if edit_state is not None else {}`.
+
+---
+
+## 13. Instalación, actualización y desinstalación (v1.1)
+
+### Instalar (independiente de esta carpeta)
+```bash
+curl -fsSL https://raw.githubusercontent.com/braiidev/clock/main/install.sh | bash
+```
+Instala **sin sudo** en `~`:
+| Componente | Ruta |
+|---|---|
+| Código (clone git) | `~/.local/share/clock-tui/` |
+| Entorno virtual | `~/.local/share/clock-tui/.venv/` |
+| Comando `clock` | `~/.local/bin/clock` (symlink al venv) |
+| Datos personales (intactos) | `~/.config/clock/` (data.json v7, sonidos, log) |
+
+El dataset vive en `~/.config/clock/`; el instalador **nunca lo toca**. Si `~/.local/bin` no está en tu PATH, el script lo avisa.
+
+### Actualizar
+- **Manual:** `clock --update` (hace `git fetch` + `git pull --ff-only`; si el historial divergió, `reset --hard origin/main`).
+- **Desde la TUI:** `Config → Sistema → Comprobar actualización` (acción): si hay versión nueva actualiza y muestra un **toast**; si está al día dice "Estás al día". Corre en background; no bloquea la UI.
+- **Al entrar:** por defecto verifica en background y avisa con un **toast** "Actualización disponible" si la hay. Para desactivarlo: `CLOCK_NO_AUTO_UPDATE=1 clock`.
+- **Consultar:** `clock --check-update` (prints el estado, útil para scripts/cron).
+- `--update` y el check comparan **commits**, no versiones: es robusto sin importar qué tags hay.
+
+### Desinstalar
+```bash
+clock --uninstall   # pide confirmación; y además pregunta si borrar ~/.config/clock
+```
+Solo desinstala si el código vive en `~/.local/share/clock-tui` (protege otras copias/el repo de desarrollo).
+
+### Convención de versionado (v1.1+)
+- **semver de producto:** `pyproject.toml` + `__version__` (`1.1.0`).
+- **tags de release** en el repo público `braiidev/clock`: `v1.1.0`, etc.
+- **tags de task** en historial local: `v0.N` (contador interno, una por commit).
+- El self-update **no compara** ambos mundos: decide por conteo de commits (`HEAD..origin/main`).
