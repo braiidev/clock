@@ -24,6 +24,8 @@ entre la documentación previa. Es la única fuente de verdad;
 | D13 | Clima: **solo en el Dashboard** (no en la vista Reloj) |
 | D14 | Badge de actividad: **eliminado** → overlay bajo demanda con `o` (teclado global); se elimina `badge_modo` de config |
 | D15 | Config = **contrato global** que todas las vistas consumen (marco/helpers globales, editables solo en Config) |
+| D16 | `edit_state` de alarmas lo **posee la app** (`self._alarm_edit`) y se comparte controller↔vista; el dict no se recrea por tecla |
+| D17 | `KEY_RESIZE` se maneja en el loop (`_on_resize`: clear+refresh) y cada `_render` relee `getmaxyx`; tier micro degrada sin marco |
 
 ---
 
@@ -523,3 +525,17 @@ Orden de features por complejidad: stopwatch (más simple, valida el patrón), t
 |---|---|---|
 | O1 | Migrar clima de wttr.in a Open-Meteo | Baja (post-v1) |
 | O3 | ~~Badge de actividad en modo micro~~ → eliminado: el badge es ahora overlay bajo demanda, no hay badge permanente | Baja |
+
+---
+
+## 12. Estado de validación (fases 5-6)
+
+Implementación completa del refactor. Suite: `375` tests (pytest) · pyright 0 errores · black.
+
+- **Flows e2e por dispatch** (test_app.py): edición completa de alarma (nombre→hora→días→guardar con `needs_save`), alta de timers/todo/clock-picker, ciclo de tema en Config (reinstala pairs), roundtrip `save_now→store→load`, render micro-tier.
+- **Overlays** (test_overlay.py): `draw_alert`/`draw_help`/`draw_log_viewer` en full y tamaños mínimos, scroll válido.
+- **Pty real:** `clock-tui` navega las 7 vistas (`0-6`), toggle de help (`?`) y quit (`q`) con exit 0; sin entradas nuevas en `clock_error.log`.
+- **Resize:** `KEY_RESIZE` → `_on_resize()` (clear+refresh); `_render` relee `getmaxyx()` cada frame. Tier micro sin marco y footer compacto `[0-6 q]`.
+
+### Bug corregido en fase 6.1
+El `edit_state` de alarmas se creaba vacío en cada tecla (`es = edit_state or {}` descarta un dict vacío) → la edición no persistía. La app ahora es dueña de `self._alarm_edit` y `es = edit_state if edit_state is not None else {}`.

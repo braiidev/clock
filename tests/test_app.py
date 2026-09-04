@@ -76,6 +76,7 @@ class _FakeStdscr:
     def __init__(self, h: int = 24, w: int = 80) -> None:
         self.h = h
         self.w = w
+        self.cleared = False
 
     def getmaxyx(self) -> tuple[int, int]:
         return (self.h, self.w)
@@ -94,6 +95,9 @@ class _FakeStdscr:
 
     def erase(self) -> None:
         pass
+
+    def clear(self) -> None:
+        self.cleared = True
 
     def refresh(self) -> None:
         pass
@@ -553,6 +557,15 @@ def test_config_theme_cycle_applies(app):
 
 def test_render_micro_tier(app):
     app.stdscr.h, app.stdscr.w = 3, 15
+    app._render()
+
+
+def test_resize_handler_redraws(app, fake_curses):
+    app.stdscr.h, app.stdscr.w = 3, 10
+    app.stdscr.cleared = False
+    app._on_resize()
+    assert app.stdscr.cleared is True
+    app.stdscr.h, app.stdscr.w = 24, 80
     app._render()
 
 

@@ -1,12 +1,12 @@
 # TODO
 
 ## Doing
-- [ ] Fase 6.2: validación en terminal real (pty): flows por vista + degradado micro/resize + ausencia de crashes - v0.20
-
-## Next
 - [ ] Fase 6.3: cierre — CLOCK.md decisiones fase 5/6, limpieza, tag de milestone - v0.21
 
+## Next
+
 ## Done
+- [x] Fase 6.2: validación en terminal real (pty) por vista + resize/micro + KEY_RESIZE handler - v0.20
 - [x] Fase 6.1: tests de integración app — flows e2e vía dispatch + renders de overlays + bug edit_state alarmas - v0.19
 - [x] Fase 5.6: main.py funcional (curses.wrapper + crash log) + pyproject script + verificación en pty real - v0.17
 - [x] Fase 5.5: app.py — dashboard jump/refresh + config commands + overlays - v0.16

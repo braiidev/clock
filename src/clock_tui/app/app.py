@@ -248,6 +248,9 @@ class ClockApp:
                     if perr:
                         self._show_alert("⚠ Persistencia", perr)
                 key = self.stdscr.getch()
+                if key == curses.KEY_RESIZE:
+                    self._on_resize()
+                    continue
                 if key != -1:
                     if self._handle_key(key):
                         break
@@ -261,6 +264,14 @@ class ClockApp:
             curses.curs_set(1)
 
     # ── Input ──
+
+    def _on_resize(self) -> None:
+        """Refresca las curses tras un resize para evitar rendering corrupto."""
+        try:
+            self.stdscr.clear()
+            self.stdscr.refresh()
+        except Exception:
+            pass
 
     def _handle_key(self, key: int) -> bool:
         # Overlays modales tienen prioridad sobre el router.
