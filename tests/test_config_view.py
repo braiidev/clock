@@ -28,9 +28,9 @@ def test_render_does_not_mutate_model():
         c_view.render(
             FakeStdscr(),
             m,
+            theme={},
             pairs={"marco": 1, "texto": 6, "helpers": 2},
-            mostrar_marco=True,
-            mostrar_helpers=True,
+            config={"mostrar_marco": True, "mostrar_helpers": True},
         )
     except Exception:
         pass

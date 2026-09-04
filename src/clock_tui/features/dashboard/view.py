@@ -18,10 +18,12 @@ def render(
     stdscr: Any,
     snap: DashboardSnapshot,
     *,
+    theme: dict[str, int],
     pairs: dict[str, int],
-    mostrar_marco: bool,
-    mostrar_helpers: bool,
+    config: dict[str, Any],
 ) -> None:
+    mostrar_marco = config.get("mostrar_marco", True)
+    mostrar_helpers = config.get("mostrar_helpers", True)
     tier = size_tier()
 
     if tier == Tier.MINIMUM:

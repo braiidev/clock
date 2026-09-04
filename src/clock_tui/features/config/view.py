@@ -17,10 +17,12 @@ def render(
     stdscr: Any,
     model: ConfigModel,
     *,
+    theme: dict[str, int],
     pairs: dict[str, int],
-    mostrar_marco: bool,
-    mostrar_helpers: bool,
+    config: dict[str, Any],
 ) -> None:
+    mostrar_marco = config.get("mostrar_marco", True)
+    mostrar_helpers = config.get("mostrar_helpers", True)
     if model.text_edit:
         _render_text(stdscr, model, pairs=pairs, mostrar_marco=mostrar_marco)
         return
