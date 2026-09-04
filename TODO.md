@@ -1,13 +1,13 @@
 # TODO
 
 ## Doing
-- [ ] Fase 5.5: app.py — dashboard jump/refresh + config commands (theme/weather/sound) - v0.16
-
-## Next
-- [ ] Fase 5.6: main.py funcional + pyproject script + verificación manual - v0.17
 - [ ] Fase 6: tests + validación manual - v0.18
 
+## Next
+
 ## Done
+- [x] Fase 5.6: main.py funcional (curses.wrapper + crash log) + pyproject script + verificación en pty real - v0.17
+- [x] Fase 5.5: app.py — dashboard jump/refresh + config commands + overlays - v0.16
 - [x] Fase 5.4: app.py — ticks de fondo (timers/alarmas/snooze) + alert overlay + audio - v0.15
 - [x] Fase 5.3: app.py — bootstrap + persistencia + main loop + dispatch + render + quit - v0.14
 - [x] Fase 5.2: unificar firma de view.render (theme, pairs, config) según D15 - v0.13

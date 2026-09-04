@@ -58,6 +58,12 @@ class _FakeCurses(types.ModuleType):
     def color_pair(self, n: int) -> int:
         return n << 16 if n in self._pairs else 0
 
+    def start_color(self) -> None:
+        pass
+
+    def use_default_colors(self) -> None:
+        pass
+
     def curs_set(self, n: int) -> None:
         pass
 

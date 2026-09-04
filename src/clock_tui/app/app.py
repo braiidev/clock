@@ -100,6 +100,8 @@ class ClockApp:
             self.weather.start()
 
         # Pares fijos: alerta (rojo), help (blanco/negro); se inicializan una vez.
+        curses.start_color()
+        curses.use_default_colors()
         curses.init_pair(_ALERT_BLINK_PAIR_A, curses.COLOR_BLACK, curses.COLOR_RED)
         curses.init_pair(_ALERT_BLINK_PAIR_B, curses.COLOR_RED, curses.COLOR_WHITE)
         curses.init_pair(_HELP_BG_PAIR, curses.COLOR_WHITE, curses.COLOR_BLACK)
