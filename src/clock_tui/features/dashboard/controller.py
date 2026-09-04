@@ -20,7 +20,9 @@ class ActionResult:
 
 
 class DashboardController:
-    def handle(self, snap: DashboardSnapshot, key: int, context: dict[str, Any]) -> ActionResult:
+    def handle(
+        self, snap: DashboardSnapshot, key: int, context: dict[str, Any]
+    ) -> ActionResult:
         if key in (ord("\n"), 10, 13):
             activities = snap.activities
             if activities and 0 <= snap.selected_idx < len(activities):

@@ -9,6 +9,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from collections.abc import Callable
+from typing import Any
 
 WeatherCache = dict
 
@@ -79,7 +80,7 @@ class WeatherService:
 
     def __init__(
         self,
-        get_config: Callable[[str, object], object],
+        get_config: Callable[[str, object], Any],
         persist: Callable[[bool, str, float], None],
     ):
         self._get_config = get_config

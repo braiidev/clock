@@ -1,16 +1,13 @@
 # TODO
 
 ## Doing
-- [ ] v1.2.1: Overlay de actividad `<o>` (alarmas/timers/crono/tareas con orden, `alarmas_mostrar` cableado) - v0.27
 
 ## Next
-- [ ] v1.2.2: Auditoría final — pyright 18 errores preexistentes (store/theme/world_zones/weather), black 26 reformat, revisión rendimiento/legibilidad - v0.28
 
 ## Done
+- [x] v1.2.2: Auditoría final — pyright 0 errores (store/theme/world_zones/weather) + black 26 uniforme + revisión rendimiento/concurrencia/legibilidad - v0.28
+- [x] v1.2.1: Overlay de actividad `<o>` (alarmas/timers/crono/tareas con orden, `alarmas_mostrar` cableado) - v0.27
 - [x] v1.1.4: doc CLOCK.md (instalación/actualización/desinstalación, convención de versionado) + push a braiidev/clock - v0.25
-- [x] v1.1.3: Config → Sistema → "Comprobar actualización" + toast de versión nueva al entrar - v0.24
-- [x] v1.1.2: CLI `clock --update/--uninstall/--check-update/--version` + `install.sh` (curl|bash sin sudo) - v0.23
-- [x] v1.1.1: módulo `update.py` (check/do, por commits) + tests con fixture git local - v0.22
 - [x] Fase 6.3: cierre — doc fase 5/6 en CLOCK.md, limpieza (removido clock.py), milestone **v1.0** - v0.21
 - [x] Fase 6.2: validación en terminal real (pty) por vista + resize/micro + KEY_RESIZE handler - v0.20
 - [x] Fase 6.1: tests de integración app — flows e2e vía dispatch + renders de overlays + bug edit_state alarmas - v0.19

@@ -158,7 +158,7 @@ def _migrate_legacy() -> None:
             old = json.load(f)
     except (OSError, json.JSONDecodeError) as e:
         _last_persistence_error = (
-            f"No se pudo migrar los datos previos: {e.strerror or e}"
+            f"No se pudo migrar los datos previos: {getattr(e, 'strerror', None) or e}"
         )
         return
 

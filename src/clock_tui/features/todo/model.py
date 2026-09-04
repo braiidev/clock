@@ -163,7 +163,11 @@ class TodoModel:
             self.temp_texto = ""
             self.temp_recordarme = False
             self.temp_alarma = [
-                ahora.hour, ahora.minute, ahora.day, ahora.month, ahora.year,
+                ahora.hour,
+                ahora.minute,
+                ahora.day,
+                ahora.month,
+                ahora.year,
             ]
             self.temp_repetir = False
             self.temp_days = []
@@ -175,9 +179,7 @@ class TodoModel:
         )
         recordarme = self.temp_recordarme and self.temp_tipo == "tarea"
         hh, mm, dia, mes, anio = self.temp_alarma
-        repeat_days = (
-            list(self.temp_days) if (recordarme and self.temp_repetir) else []
-        )
+        repeat_days = list(self.temp_days) if (recordarme and self.temp_repetir) else []
         if self.edit_target is not None and self.todos:
             t = self.todos[self.edit_target]
             t["tipo"] = self.temp_tipo
@@ -226,7 +228,11 @@ class TodoModel:
         if self.temp_recordarme:
             ahora = datetime.datetime.now()
             self.temp_alarma = [
-                ahora.hour, ahora.minute, ahora.day, ahora.month, ahora.year,
+                ahora.hour,
+                ahora.minute,
+                ahora.day,
+                ahora.month,
+                ahora.year,
             ]
             self.temp_repetir = False
             self.temp_days = []

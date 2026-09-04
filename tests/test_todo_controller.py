@@ -8,10 +8,21 @@ from clock_tui.features.todo.model import TodoModel
 
 def _model(n: int = 0) -> TodoModel:
     todos = [
-        {"id": i, "tipo": "tarea", "texto": f"T{i}", "activo": True,
-         "recordarme": False, "repeat_days": [], "last_done_date": None,
-         "alarma_hora": 10, "alarma_min": 0, "alarma_dia": 1, "alarma_mes": 1,
-         "alarma_anio": 2025, "_disparada": False}
+        {
+            "id": i,
+            "tipo": "tarea",
+            "texto": f"T{i}",
+            "activo": True,
+            "recordarme": False,
+            "repeat_days": [],
+            "last_done_date": None,
+            "alarma_hora": 10,
+            "alarma_min": 0,
+            "alarma_dia": 1,
+            "alarma_mes": 1,
+            "alarma_anio": 2025,
+            "_disparada": False,
+        }
         for i in range(n)
     ]
     return TodoModel(todos=todos, next_id=n + 1)

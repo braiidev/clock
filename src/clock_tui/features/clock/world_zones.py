@@ -112,7 +112,7 @@ def _wc_sorted_zones(
     def _key(z: tuple[str, str, str, str, str]) -> datetime.timedelta:
         try:
             t = ref if ref is not None else datetime.datetime.now(datetime.timezone.utc)
-            off = t.astimezone(ZoneInfo(z[0])).utcoffset()
+            off = t.astimezone(ZoneInfo(z[0])).utcoffset() or datetime.timedelta(0)
         except Exception:
             off = datetime.timedelta(0)
         return off

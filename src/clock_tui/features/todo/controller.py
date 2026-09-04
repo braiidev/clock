@@ -20,7 +20,9 @@ class ActionResult:
 
 
 class TodoController:
-    def handle(self, model: TodoModel, key: int, context: dict[str, Any]) -> ActionResult:
+    def handle(
+        self, model: TodoModel, key: int, context: dict[str, Any]
+    ) -> ActionResult:
         if model.edit_mode:
             return self._handle_edit(model, key)
         if model.confirm_delete:

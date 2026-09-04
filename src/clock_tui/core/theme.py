@@ -44,18 +44,18 @@ def _set_custom_theme(props: dict[str, Any] | None = None) -> dict[str, Any]:
             "custom_color_helpers": "Azul",
             "custom_color_nav": "Azul",
         }
+    c = props or {}
+    marco = c.get("custom_color_marco") or "Azul"
+    texto = c.get("custom_color_texto") or "Blanco"
+    clima = c.get("custom_color_clima") or "Amarillo"
+    helpers = c.get("custom_color_helpers") or "Azul"
+    nav = c.get("custom_color_nav") or "Azul"
     return {
-        "marco": COLORS_PACK.get(props.get("custom_color_marco"), COLORS_PACK["Azul"]),
-        "texto": COLORS_PACK.get(
-            props.get("custom_color_texto"), COLORS_PACK["Blanco"]
-        ),
-        "clima": COLORS_PACK.get(
-            props.get("custom_color_clima"), COLORS_PACK["Amarillo"]
-        ),
-        "helpers": COLORS_PACK.get(
-            props.get("custom_color_helpers"), COLORS_PACK["Azul"]
-        ),
-        "nav": COLORS_PACK.get(props.get("custom_color_nav"), COLORS_PACK["Azul"]),
+        "marco": COLORS_PACK.get(marco, COLORS_PACK["Azul"]),
+        "texto": COLORS_PACK.get(texto, COLORS_PACK["Blanco"]),
+        "clima": COLORS_PACK.get(clima, COLORS_PACK["Amarillo"]),
+        "helpers": COLORS_PACK.get(helpers, COLORS_PACK["Azul"]),
+        "nav": COLORS_PACK.get(nav, COLORS_PACK["Azul"]),
     }
 
 

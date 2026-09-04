@@ -47,7 +47,9 @@ def render(
             rows.append(f"{sel} {it.label:26s} [{val}]")
 
     helper = (
-        ["\u2190\u2192:categor\u00eda  \u2191\u2193:nav  Space/Enter:toggle/ciclar/elegir"]
+        [
+            "\u2190\u2192:categor\u00eda  \u2191\u2193:nav  Space/Enter:toggle/ciclar/elegir"
+        ]
         if mostrar_helpers
         else []
     )

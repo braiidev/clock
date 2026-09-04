@@ -36,8 +36,20 @@ def test_alarm_repeat_str():
 
 def test_from_data():
     data = [
-        {"nombre": "R", "hora": 15, "minutos": 0, "status": "activado", "repeat_days": [0, 1]},
-        {"nombre": "D", "hora": 7, "minutos": 30, "status": "desactivado", "repeat_days": []},
+        {
+            "nombre": "R",
+            "hora": 15,
+            "minutos": 0,
+            "status": "activado",
+            "repeat_days": [0, 1],
+        },
+        {
+            "nombre": "D",
+            "hora": 7,
+            "minutos": 30,
+            "status": "desactivado",
+            "repeat_days": [],
+        },
     ]
     m = AlarmsModel.from_data(data)
     assert len(m.alarms) == 2
@@ -47,9 +59,7 @@ def test_from_data():
 
 
 def test_to_data():
-    m = AlarmsModel(
-        alarms=[Alarm(nombre="X", hora=8, minutos=0, repeat_days=[0])]
-    )
+    m = AlarmsModel(alarms=[Alarm(nombre="X", hora=8, minutos=0, repeat_days=[0])])
     d = m.to_data()
     assert len(d) == 1
     assert d[0]["tipo"] == "alarma"
@@ -58,9 +68,7 @@ def test_to_data():
 
 
 def test_check_fires_matching():
-    m = AlarmsModel(
-        alarms=[Alarm(hora=10, minutos=30, status="activado")]
-    )
+    m = AlarmsModel(alarms=[Alarm(hora=10, minutos=30, status="activado")])
     now = datetime.datetime(2025, 6, 16, 10, 30)  # Monday
     fired = m.check(now)
     assert len(fired) == 1
@@ -68,18 +76,14 @@ def test_check_fires_matching():
 
 
 def test_check_no_fire_wrong_time():
-    m = AlarmsModel(
-        alarms=[Alarm(hora=10, minutos=30, status="activado")]
-    )
+    m = AlarmsModel(alarms=[Alarm(hora=10, minutos=30, status="activado")])
     now = datetime.datetime(2025, 6, 16, 10, 31)
     fired = m.check(now)
     assert len(fired) == 0
 
 
 def test_check_no_fire_disabled():
-    m = AlarmsModel(
-        alarms=[Alarm(hora=10, minutos=30, status="desactivado")]
-    )
+    m = AlarmsModel(alarms=[Alarm(hora=10, minutos=30, status="desactivado")])
     now = datetime.datetime(2025, 6, 16, 10, 30)
     fired = m.check(now)
     assert len(fired) == 0
@@ -87,7 +91,9 @@ def test_check_no_fire_disabled():
 
 def test_check_repeats_reactivates():
     m = AlarmsModel(
-        alarms=[Alarm(hora=10, minutos=30, status="activado", repeat_days=[0, 1, 2, 3, 4])]
+        alarms=[
+            Alarm(hora=10, minutos=30, status="activado", repeat_days=[0, 1, 2, 3, 4])
+        ]
     )
     now = datetime.datetime(2025, 6, 16, 10, 30)  # Monday
     m.check(now)
@@ -109,9 +115,7 @@ def test_check_once_deactivates():
 
 
 def test_check_no_duplicate_same_minute():
-    m = AlarmsModel(
-        alarms=[Alarm(hora=10, minutos=30, status="activado")]
-    )
+    m = AlarmsModel(alarms=[Alarm(hora=10, minutos=30, status="activado")])
     now = datetime.datetime(2025, 6, 16, 10, 30)
     m.check(now)
     fired2 = m.check(now)

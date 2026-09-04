@@ -79,9 +79,7 @@ class AlarmsModel:
             for a in self.alarms
         ]
 
-    def check(
-        self, now: datetime.datetime | None = None
-    ) -> list[tuple[Alarm, str]]:
+    def check(self, now: datetime.datetime | None = None) -> list[tuple[Alarm, str]]:
         """Compara hora actual con alarmas. Devuelve [(alarm, titulo)] de las que dispararon.
 
         Maneja el ciclo activado→disparada→re-activado/desactivado.
@@ -129,7 +127,10 @@ class AlarmsModel:
                 if not s._fired:
                     s._fired = True
                     fired.append(
-                        (s, f"{s.hora:02d}:{s.minutos:02d} \u2014 \u00a1Alarma pospuesta!")
+                        (
+                            s,
+                            f"{s.hora:02d}:{s.minutos:02d} \u2014 \u00a1Alarma pospuesta!",
+                        )
                     )
                     to_remove.append(i)
 

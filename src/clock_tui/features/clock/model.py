@@ -72,8 +72,18 @@ class ClockModel:
     def format_date_line(now: datetime.datetime, time_str: str) -> str:
         DIAS = ["Lun", "Mar", "Mi\u00e9", "Jue", "Vie", "S\u00e1b", "Dom"]
         MESES = [
-            "Ene", "Feb", "Mar", "Abr", "May", "Jun",
-            "Jul", "Ago", "Sep", "Oct", "Nov", "Dic",
+            "Ene",
+            "Feb",
+            "Mar",
+            "Abr",
+            "May",
+            "Jun",
+            "Jul",
+            "Ago",
+            "Sep",
+            "Oct",
+            "Nov",
+            "Dic",
         ]
         return f"{DIAS[now.weekday()]} {now.day} {MESES[now.month - 1]}  {time_str}"
 
@@ -110,8 +120,11 @@ class ClockModel:
         texto = self.picker.filter_text.strip().lower()
         if self.picker.filter_active and texto:
             ordenada = [
-                z for z in ordenada
-                if texto in z[1].lower() or texto in z[2].lower() or texto in z[3].lower()
+                z
+                for z in ordenada
+                if texto in z[1].lower()
+                or texto in z[2].lower()
+                or texto in z[3].lower()
             ]
         self.picker.zones = ordenada
         if not self.picker.zones:

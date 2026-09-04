@@ -11,10 +11,21 @@ from clock_tui.features.todo.model import (
 
 def _model(n: int = 0) -> TodoModel:
     todos = [
-        {"id": i, "tipo": "tarea", "texto": f"T{i}", "activo": True,
-         "recordarme": False, "repeat_days": [], "last_done_date": None,
-         "alarma_hora": 10, "alarma_min": 0, "alarma_dia": 1, "alarma_mes": 1,
-         "alarma_anio": 2025, "_disparada": False}
+        {
+            "id": i,
+            "tipo": "tarea",
+            "texto": f"T{i}",
+            "activo": True,
+            "recordarme": False,
+            "repeat_days": [],
+            "last_done_date": None,
+            "alarma_hora": 10,
+            "alarma_min": 0,
+            "alarma_dia": 1,
+            "alarma_mes": 1,
+            "alarma_anio": 2025,
+            "_disparada": False,
+        }
         for i in range(n)
     ]
     return TodoModel(todos=todos, next_id=n + 1)
@@ -280,9 +291,18 @@ def test_visible_range_scrolled():
 
 def test_item_display_tarea():
     m = _model()
-    t = {"tipo": "tarea", "texto": "Comprar leche", "activo": True,
-         "recordarme": False, "repeat_days": [], "alarma_hora": 7, "alarma_min": 0,
-         "alarma_dia": 1, "alarma_mes": 1, "alarma_anio": 2025}
+    t = {
+        "tipo": "tarea",
+        "texto": "Comprar leche",
+        "activo": True,
+        "recordarme": False,
+        "repeat_days": [],
+        "alarma_hora": 7,
+        "alarma_min": 0,
+        "alarma_dia": 1,
+        "alarma_mes": 1,
+        "alarma_anio": 2025,
+    }
     result = m.item_display(t)
     assert "\u2610" in result
     assert "Comprar leche" in result
@@ -298,10 +318,18 @@ def test_item_display_nota():
 
 def test_item_display_with_repeat():
     m = _model()
-    t = {"tipo": "tarea", "texto": "Llamar", "activo": True,
-         "recordarme": True, "repeat_days": [0, 1, 2, 3, 4],
-         "alarma_hora": 7, "alarma_min": 30, "alarma_dia": 1, "alarma_mes": 1,
-         "alarma_anio": 2025}
+    t = {
+        "tipo": "tarea",
+        "texto": "Llamar",
+        "activo": True,
+        "recordarme": True,
+        "repeat_days": [0, 1, 2, 3, 4],
+        "alarma_hora": 7,
+        "alarma_min": 30,
+        "alarma_dia": 1,
+        "alarma_mes": 1,
+        "alarma_anio": 2025,
+    }
     result = m.item_display(t)
     assert "L-V" in result
     assert "07:30" in result

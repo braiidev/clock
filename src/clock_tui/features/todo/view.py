@@ -26,12 +26,24 @@ def render(
     mostrar_marco = config.get("mostrar_marco", True)
     mostrar_helpers = config.get("mostrar_helpers", True)
     if model.edit_mode:
-        _render_edit(stdscr, model, pairs=pairs, mostrar_marco=mostrar_marco, mostrar_helpers=mostrar_helpers)
+        _render_edit(
+            stdscr,
+            model,
+            pairs=pairs,
+            mostrar_marco=mostrar_marco,
+            mostrar_helpers=mostrar_helpers,
+        )
         return
     if model.confirm_delete:
         _render_confirm(stdscr, model, pairs=pairs, mostrar_marco=mostrar_marco)
         return
-    _render_list(stdscr, model, pairs=pairs, mostrar_marco=mostrar_marco, mostrar_helpers=mostrar_helpers)
+    _render_list(
+        stdscr,
+        model,
+        pairs=pairs,
+        mostrar_marco=mostrar_marco,
+        mostrar_helpers=mostrar_helpers,
+    )
 
 
 def _render_list(
@@ -60,7 +72,9 @@ def _render_list(
         rows.append("Presion\u00e1 <a> para crear")
 
     helper = (
-        ["a:nuevo  \u2191\u2191:nav  \u2190\u2192/JK:mover  Space:\u2714/\u25cb  e:editar  d:borrar  x:alarma"]
+        [
+            "a:nuevo  \u2191\u2191:nav  \u2190\u2192/JK:mover  Space:\u2714/\u25cb  e:editar  d:borrar  x:alarma"
+        ]
         if mostrar_helpers
         else []
     )
@@ -113,7 +127,11 @@ def _render_edit(
                     marcado = d in model.temp_days
                     txt = f"[{DIAS_ABBR[d]}]" if marcado else f" {DIAS_ABBR[d]} "
                     if f == 4 and d == model.temp_days_cursor:
-                        txt = f"\u00bb{txt}\u00ab" if marcado else f"\u00bb{DIAS_ABBR[d]}\u00ab"
+                        txt = (
+                            f"\u00bb{txt}\u00ab"
+                            if marcado
+                            else f"\u00bb{DIAS_ABBR[d]}\u00ab"
+                        )
                     partes_dias.append(txt)
                 rows += [
                     f"{fmark(4)} D\u00edas       : {''.join(partes_dias)}",
@@ -130,13 +148,17 @@ def _render_edit(
                 ]
 
     helper_lines = (
-        ["\u2191\u2191:l\u00ednea  Enter:guardar  Esc:cancelar"]
-        if es_nota
-        else [
-            "\u2191\u2191:l\u00ednea  Enter:guardar  Esc:cancelar",
-            "Tipo/Recordarme/Repetir: Tab o Space  |  Valores/D\u00edas: \u2190\u2192 Space",
-        ]
-    ) if mostrar_helpers else []
+        (
+            ["\u2191\u2191:l\u00ednea  Enter:guardar  Esc:cancelar"]
+            if es_nota
+            else [
+                "\u2191\u2191:l\u00ednea  Enter:guardar  Esc:cancelar",
+                "Tipo/Recordarme/Repetir: Tab o Space  |  Valores/D\u00edas: \u2190\u2192 Space",
+            ]
+        )
+        if mostrar_helpers
+        else []
+    )
 
     draw_frame(
         stdscr,

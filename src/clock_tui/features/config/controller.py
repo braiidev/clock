@@ -25,7 +25,9 @@ class ActionResult:
 
 
 class ConfigController:
-    def handle(self, model: ConfigModel, key: int, context: dict[str, Any]) -> ActionResult:
+    def handle(
+        self, model: ConfigModel, key: int, context: dict[str, Any]
+    ) -> ActionResult:
         if model.text_edit:
             return self._handle_text(model, key)
         return self._handle_normal(model, key)

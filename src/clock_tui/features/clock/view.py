@@ -38,8 +38,11 @@ def render(
     format_24h = config.get("formato_24h", True)
 
     import datetime
+
     now = datetime.datetime.now()
-    time_str = ClockModel.format_local_time(now, show_seconds=show_seconds, format_24h=format_24h)
+    time_str = ClockModel.format_local_time(
+        now, show_seconds=show_seconds, format_24h=format_24h
+    )
     date_line = ClockModel.format_date_line(now, time_str)
 
     if model.confirm_delete:

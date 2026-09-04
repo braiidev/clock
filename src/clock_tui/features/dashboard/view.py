@@ -48,7 +48,11 @@ def render(
             sel = "\u25ba" if i == snap.selected_idx else " "
             rows.append(f"{sel} {act.label}")
 
-    helper = ["\u2191\u2193:navegar  Enter:ir a vista  u:refresh clima"] if mostrar_helpers else []
+    helper = (
+        ["\u2191\u2193:navegar  Enter:ir a vista  u:refresh clima"]
+        if mostrar_helpers
+        else []
+    )
 
     draw_frame(
         stdscr,
