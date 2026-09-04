@@ -1,5 +1,5 @@
 """Features del paquete, organizadas por vista (MVC)."""
 
-from . import stopwatch
+from . import stopwatch, timers
 
-__all__ = ["stopwatch"]
+__all__ = ["stopwatch", "timers"]
