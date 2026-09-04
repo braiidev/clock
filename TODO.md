@@ -1,11 +1,11 @@
 # TODO
 
 ## Doing
-- [ ] Fase 6.3: cierre — CLOCK.md decisiones fase 5/6, limpieza, tag de milestone - v0.21
 
 ## Next
 
 ## Done
+- [x] Fase 6.3: cierre — doc fase 5/6 en CLOCK.md, limpieza (removido clock.py), milestone **v1.0** - v0.21
 - [x] Fase 6.2: validación en terminal real (pty) por vista + resize/micro + KEY_RESIZE handler - v0.20
 - [x] Fase 6.1: tests de integración app — flows e2e vía dispatch + renders de overlays + bug edit_state alarmas - v0.19
 - [x] Fase 5.6: main.py funcional (curses.wrapper + crash log) + pyproject script + verificación en pty real - v0.17

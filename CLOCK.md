@@ -1,7 +1,7 @@
 # CLOCK — Documento único del proyecto
 
-Guía de referencia para el refactor de `clock.py` (TUI en curses) a un paquete
-instalable `clock-tui`. Este documento consolida y resuelve las discrepancias
+Guía de referencia del refactor de un TUI en curses (~4.3k líneas) a un paquete
+instalable **`clock-tui` v1.0**. Este documento consolida y resuelve las discrepancias
 entre la documentación previa. Es la única fuente de verdad;
 ---
 
@@ -515,7 +515,7 @@ En modo normal: pausa/reanuda timers y crono. No afecta alarmas. Estado en `_glo
 | **5** | Main app (`app.py`, `router.py`) | Alto |
 | **6** | Tests + validación manual | Bajo |
 
-Orden de features por complejidad: stopwatch (más simple, valida el patrón), timers, alarms, clock, dashboard, todo, config. Cada fase se valida antes de la siguiente.
+Orden de features por complejidad: stopwatch (más simple, valida el patrón), timers, alarms, clock, dashboard, todo, config. Todas cerradas en v1.0.
 
 ---
 
@@ -530,7 +530,7 @@ Orden de features por complejidad: stopwatch (más simple, valida el patrón), t
 
 ## 12. Estado de validación (fases 5-6)
 
-Implementación completa del refactor. Suite: `375` tests (pytest) · pyright 0 errores · black.
+Implementación completa del refactor, **milestone v1.0**. Suite: `375` tests (pytest) · pyright 0 errores · black. Monolito original eliminado (`clock.py`).
 
 - **Flows e2e por dispatch** (test_app.py): edición completa de alarma (nombre→hora→días→guardar con `needs_save`), alta de timers/todo/clock-picker, ciclo de tema en Config (reinstala pairs), roundtrip `save_now→store→load`, render micro-tier.
 - **Overlays** (test_overlay.py): `draw_alert`/`draw_help`/`draw_log_viewer` en full y tamaños mínimos, scroll válido.
