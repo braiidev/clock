@@ -10,6 +10,7 @@ requires-python = ">=3.9"
 dependencies = []
 
 [project.scripts]
+clock = "clock_tui.main:main"
 clock-tui = "clock_tui.main:main"
 
 [tool.setuptools.packages.find]
