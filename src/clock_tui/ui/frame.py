@@ -142,9 +142,12 @@ def draw_frame(
     footer: str = "",
     pairs: dict[str, int] | None = None,
     row_attrs: Sequence[int | None] | None = None,
+    bottom_counter: str | None = None,
 ) -> tuple[int, int, int, Tier]:
     """Dibuja el layout completo de una vista.
 
+    `bottom_counter` (p.ej. "(3/10)") se dibuja alineado a la derecha sobre
+    el borde inferior del marco, sin ocupar filas de contenido.
     Retorna (sy, sx, box_w, tier).
     """
     pairs = pairs or {}
@@ -200,6 +203,12 @@ def draw_frame(
             hx = sx + (box_w - display_width(hline)) // 2
             hx = max(0, hx)
             painter.safe(hy, hx, hline, p_helpers)
+
+    if mostrar_marco and bottom_counter:
+        cw = display_width(bottom_counter)
+        if cw + 4 <= box_w:
+            bx = sx + box_w - cw - 2
+            painter.safe(sy + box_h - 1, bx, bottom_counter, p_nav or p_marco)
 
     fy = sh - 1
     if tier != "micro" and footer:

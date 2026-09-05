@@ -66,11 +66,17 @@ def _render_list(
     )
 
     total = model.count
+    sh, _ = stdscr.getmaxyx()
+    cap = content_capacity(sh, len(helper))
+    fixed = 2  # hora + separador
+    if cap < 3:
+        rows.pop()  # apretado: quita el separador
+        fixed = 1
+        if cap < 2:
+            rows[:] = []  # muy apretado: solo items
+            fixed = 0
     if total:
-        sh, _ = stdscr.getmaxyx()
-        effective = min(_MAX_VISIBLE, content_capacity(sh, len(helper)))
-        if total > effective:
-            effective = max(1, effective - 1)  # reserva la fila de contador
+        effective = min(_MAX_VISIBLE, max(1, cap - fixed))
         model.scroll_offset = scroll_window(
             model.selected_idx, total, effective, model.scroll_offset
         )
@@ -81,9 +87,6 @@ def _render_list(
             i_abs = i_rel + start
             sel = "\u25ba" if i_abs == model.selected_idx else " "
             rows.append(f"{sel} {model.item_display(t)}")
-        if total > effective:
-            shown_end = min(start + effective, total)
-            rows.append(f"  ({start + 1}\u2013{shown_end} de {total})")
     else:
         rows.append("Presion\u00e1 <a> para crear")
 
@@ -94,6 +97,7 @@ def _render_list(
         mostrar_marco=mostrar_marco,
         helper_lines=helper,
         pairs=pairs,
+        bottom_counter=(f"({model.selected_idx + 1}/{total})" if total else None),
     )
 
 

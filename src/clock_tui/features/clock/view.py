@@ -63,6 +63,7 @@ def render(
         return
 
     rows = [date_line]
+    bottom_counter: str | None = None
     if config.get("wc_mostrar", "ver") != "no ver":
         helper = (
             [
@@ -75,6 +76,8 @@ def render(
         wc_rows = _build_wc_rows(model, pairs, content_capacity(sh, len(helper)) - 1)
         if wc_rows:
             rows.extend(wc_rows)
+        if model.wc_list:
+            bottom_counter = f"({model.wc_idx + 1}/{len(model.wc_list)})"
     else:
         helper = []
 
@@ -85,6 +88,7 @@ def render(
         mostrar_marco=mostrar_marco,
         helper_lines=helper,
         pairs=pairs,
+        bottom_counter=bottom_counter,
     )
 
 
@@ -98,8 +102,6 @@ def _build_wc_rows(
     effective = min(
         _WC_MAX_VISIBLE, capacity if capacity is not None else _WC_MAX_VISIBLE
     )
-    if capacity is not None and n > effective:
-        effective = max(1, effective - 1)  # reserva la fila de contador
     model.wc_scroll = scroll_window(model.wc_idx, n, effective, model.wc_scroll)
     for i in range(min(effective, n - model.wc_scroll)):
         i_abs = model.wc_scroll + i
@@ -109,9 +111,6 @@ def _build_wc_rows(
         diff = model.wc_local_diff_str(wc.zona)
         extra = f"{diff} " if diff else ""
         rows.append(f"{sel} {wc.apodo} {extra}{hhmm}")
-    if n > effective:
-        shown_end = min(model.wc_scroll + effective, n)
-        rows.append(f"  ({model.wc_scroll + 1}\u2013{shown_end} de {n})")
     return rows
 
 
@@ -133,7 +132,7 @@ def _render_picker(
         helper = ["\u2191\u2193:nav  f:filtro  Enter:elegir  Esc:cancelar"]
 
     sh, _ = stdscr.getmaxyx()
-    extras = (1 if p.zones else 0) + (1 if p.filter_active else 0)
+    extras = 1 if p.filter_active else 0
     effective = min(
         _PICKER_MAX_VISIBLE,
         max(1, content_capacity(sh, len(helper)) - extras),
@@ -154,8 +153,6 @@ def _render_picker(
         rows.append("  (sin resultados)")
     if p.filter_active:
         rows.append(f"Filtro: {p.filter_text}_")
-    if p.zones:
-        rows.append(f"({p.idx + 1}/{len(p.zones)})")
 
     draw_frame(
         stdscr,
@@ -164,6 +161,7 @@ def _render_picker(
         mostrar_marco=mostrar_marco,
         helper_lines=helper,
         pairs=pairs,
+        bottom_counter=(f"({p.idx + 1}/{len(p.zones)})" if p.zones else None),
     )
 
 

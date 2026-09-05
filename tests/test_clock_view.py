@@ -62,7 +62,7 @@ def test_build_wc_rows_ventana_scroll_no_rota():
     m = ClockModel(wc_list=_wc(6), wc_idx=4)
     m._clamp_wc_scroll()  # → wc_scroll == 1
     rows = c_view._build_wc_rows(m, {})
-    assert len(rows) == 5  # 4 filas visibles + contador
+    assert len(rows) == 4  # ventana de 4, sin fila de contador
     assert "W1" in rows[0]
     assert "W4" in rows[3]
     assert rows[3].startswith("\u25ba")

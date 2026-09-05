@@ -53,6 +53,9 @@ def render(
         mostrar_marco=mostrar_marco,
         helper_lines=helper,
         pairs=pairs,
+        bottom_counter=(
+            f"({model.selected_idx + 1}/{len(model.timers)})" if model.timers else None
+        ),
     )
 
 
@@ -101,8 +104,6 @@ def _build_rows(model: TimersModel, capacity: int | None = None) -> list[str]:
     timers = model.timers
     total = len(timers)
     effective = min(_MAX_VISIBLE, capacity if capacity is not None else _MAX_VISIBLE)
-    if capacity is not None and total > effective:
-        effective = max(1, effective - 1)  # reserva la fila de contador
     model.scroll_offset = scroll_window(
         model.selected_idx, total, effective, model.scroll_offset
     )
@@ -129,9 +130,5 @@ def _build_rows(model: TimersModel, capacity: int | None = None) -> list[str]:
             tstr = f"[{h:02d}:{m:02d}:{s:02d}]"
 
         rows.append(f"{sel}{run_icon} {t.name:14s}  {tstr}")
-
-    if total > effective:
-        shown_end = min(offset + effective, total)
-        rows.append(f"  ({offset + 1}\u2013{shown_end} de {total})")
 
     return rows

@@ -9,7 +9,7 @@ import curses
 from typing import Any
 
 from clock_tui.core.time_utils import secs_to_hms
-from clock_tui.ui.frame import draw_frame
+from clock_tui.ui.frame import content_capacity, draw_frame
 
 from .model import StopwatchModel
 
@@ -37,6 +37,12 @@ def render(
     records = model.records
     total_rec = len(records)
 
+    helper = (
+        ["Space:\u25b6/\u25c9\u25c9  m:marcar lap  d:borrar \u00faltimo  r:reset"]
+        if mostrar_helpers
+        else []
+    )
+
     if records:
         accums: list[float] = []
         acc = 0.0
@@ -44,12 +50,16 @@ def render(
             acc += d
             accums.append(acc)
 
+        sh, _ = stdscr.getmaxyx()
+        laps_cap = max(1, content_capacity(sh, len(helper)) - 2)
+        max_laps = min(_MAX_VISIBLE_LAPS, laps_cap)
+
         offset = model.scroll_offset
-        if offset + _MAX_VISIBLE_LAPS > total_rec:
-            offset = max(0, total_rec - _MAX_VISIBLE_LAPS)
+        if offset + max_laps > total_rec:
+            offset = max(0, total_rec - max_laps)
             model.scroll_offset = offset
 
-        for i in range(offset, min(offset + _MAX_VISIBLE_LAPS, total_rec)):
+        for i in range(offset, min(offset + max_laps, total_rec)):
             diff = records[i]
             accum = accums[i]
             ah, am, as_ = secs_to_hms(accum)
@@ -59,18 +69,8 @@ def render(
                 f"{marker} {i + 1:2d}.  "
                 f"{ah:02d}:{am:02d}:{as_:02d}   (+{dh:02d}:{dm:02d}:{ds:02d})"
             )
-
-        if total_rec > _MAX_VISIBLE_LAPS:
-            shown_end = min(offset + _MAX_VISIBLE_LAPS, total_rec)
-            rows.append(f"  ({offset + 1}\u2013{shown_end} de {total_rec})")
     else:
         rows.append("(sin registros)")
-
-    helper = (
-        ["Space:\u25b6/\u25c9\u25c9  m:marcar lap  d:borrar \u00faltimo  r:reset"]
-        if mostrar_helpers
-        else []
-    )
 
     draw_frame(
         stdscr,
@@ -79,4 +79,5 @@ def render(
         mostrar_marco=mostrar_marco,
         helper_lines=helper,
         pairs=pairs,
+        bottom_counter=(f"({total_rec}/{total_rec})" if total_rec else None),
     )

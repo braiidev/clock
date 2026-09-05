@@ -98,3 +98,36 @@ def test_draw_frame_no_pisa_footer_y_trunca_con_ellipsis():
     rows_dibujadas = [s for y, x, s in scr.calls if s.startswith("fila")]
     assert len(rows_dibujadas) == 2  # capacity con h=8 → box de 6, 2 filas
     assert all(r.endswith("…") for r in rows_dibujadas)
+
+
+def test_draw_frame_bottom_counter_sobre_borde():
+    scr = _Rec(24, 60)
+    draw_frame(
+        scr,
+        "Título",
+        ["fila A", "fila B"],
+        pairs={"marco": 1, "texto": 2, "helpers": 3, "nav": 4},
+        bottom_counter="(2/10)",
+    )
+    coincidencias = [s for y, x, s in scr.calls if s == "(2/10)"]
+    assert len(coincidencias) == 1
+    y, x, _ = next(c for c in scr.calls if c[2] == "(2/10)")
+    # el contador vive en la última fila de contenido del box (borde inferior)
+    assert y == 13  # contenido_capacity(24)=18 → box_h=6, sy=8 → borde en 13
+    assert x == 47  # alineado a la derecha, antes de la esquina ┘
+    # no desplaza filas de contenido
+    filas = [s for y2, x2, s in scr.calls if s.startswith("fila")]
+    assert "fila A" in filas and "fila B" in filas
+
+
+def test_draw_frame_bottom_counter_sin_marco_se_omite():
+    scr = _Rec(24, 60)
+    draw_frame(
+        scr,
+        "Título",
+        ["fila A"],
+        pairs={"marco": 1, "texto": 2, "helpers": 3},
+        mostrar_marco=False,
+        bottom_counter="(1/1)",
+    )
+    assert not [s for y, x, s in scr.calls if s == "(1/1)"]

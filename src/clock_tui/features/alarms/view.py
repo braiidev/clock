@@ -51,6 +51,9 @@ def render(
         mostrar_marco=mostrar_marco,
         helper_lines=helper,
         pairs=pairs,
+        bottom_counter=(
+            f"({model.selected_idx + 1}/{len(model.alarms)})" if model.alarms else None
+        ),
     )
 
 
@@ -137,8 +140,6 @@ def _build_rows(
     alarms = model.alarms
     total = len(alarms)
     effective = min(_MAX_VISIBLE, capacity if capacity is not None else _MAX_VISIBLE)
-    if capacity is not None and total > effective:
-        effective = max(1, effective - 1)  # reserva la fila de contador
     offset = model.scroll_offset
     rows: list[str] = []
     row_attrs: list[int | None] = []
@@ -173,10 +174,5 @@ def _build_rows(
             row_attrs.append(p_helpers | curses.A_DIM)
         else:
             row_attrs.append(None)
-
-    if total > effective:
-        shown_end = min(offset + effective, total)
-        rows.append(f"  ({offset + 1}\u2013{shown_end} de {total})")
-        row_attrs.append(p_helpers | curses.A_DIM)
 
     return rows

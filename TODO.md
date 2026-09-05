@@ -1,10 +1,12 @@
 # TODO
 
 ## Doing
+- [ ] v1.2.20: Contador (n/N) en borde inferior + scroll unificado en dashboard y config - v0.49
 
 ## Next
 
 ## Done
+- [x] v1.2.19: Scroll: selección siempre visible (fix filas fijas TODO/stopwatch) + contador (n/N) en el borde inferior para todas las listas (alarms/timers/todo/clock WC/picker/crono) - v0.48
 - [x] v1.2.18: Sonidos bundled en el paquete — install.sh/--update los copian a ~/.config/clock/sounds (sin pisar) + fallback bundled - v0.46
 - [x] v1.2.17: Scroll/truncate normalizado por altura (frame + todos los views + dashboard + overlay <o>) - v0.45
 - [x] v1.2.16: Nav configurable (mostrar_nav) y oculto en mínima si no cabe - v0.44
