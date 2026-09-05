@@ -48,7 +48,7 @@ clock                   # TUI
 clock --update          # actualizar
 clock --check-update    # verificar versión
 clock --uninstall       # desinstalar
-clock --version         # versión instalada (1.1.0)
+clock --version         # versión instalada (1.2.0)
 ```
 
 ## Datos

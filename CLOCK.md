@@ -27,7 +27,7 @@ entre la documentación previa. Es la única fuente de verdad;
 | D16 | `edit_state` de alarmas lo **posee la app** (`self._alarm_edit`) y se comparte controller↔vista; el dict no se recrea por tecla |
 | D17 | `KEY_RESIZE` se maneja en el loop (`_on_resize`: clear+refresh) y cada `_render` relee `getmaxyx`; tier micro degrada sin marco |
 | D18 | Self-update: instalación desde clone git (`install.sh`, `curl|bash`, sin sudo) + actualización **por commits** (`git rev-list --count HEAD..origin/main`), inmune al defasaje entre contador de tasks (`v0.N`) y semver de producto (`v1.y.z`) |
-| D19 | Overlay de actividad `<o>`: **implementado** en v1.2 (D14 lo documentaba pero nunca se había codificado). Agrupa alarmas activas, timers activos, crono y tareas pendientes (por `orden`); `alarmas_mostrar` ahora lo controla ("no ver" oculta la sección). `wc_mostrar` queda **sin efecto declarado**: los WC viven solo en la vista Reloj y siempre se muestran si hay lista |
+| D19 | Overlay de actividad `<o>`: **implementado** en v1.2 (D14 lo documentaba pero nunca se había codificado). Agrupa alarmas activas, timers activos, crono y tareas pendientes (por `orden`); `alarmas_mostrar` ahora lo controla ("no ver" oculta la sección). `wc_mostrar` **sí tiene efecto** (v1.2): "no ver" oculta la sección de WC en la vista Reloj; `alarmas_mostrar` además oculta la fila "Próxima alarma" del Dashboard |
 
 ---
 
@@ -208,8 +208,8 @@ afecta a varias vistas.
 | `sonido`, `sonido_modo`, `sonido_archivo`, `sonido_custom_path` | — | global | Audio del overlay de alerta | overlay de alerta |
 | `clima_*` | — | vista Dashboard | Configuración y render del clima | Dashboard |
 | `mostrar_segundos`, `formato_24h` | bool | vista Reloj | Formato del reloj local | Reloj, Dashboard |
-| `wc_mostrar` | choice | vista Reloj | Mostrar/ocultar la línea de relojes mundiales | Reloj |
-| `alarmas_mostrar` | choice | global | Mostrar/ocultar alarmas en el overlay de actividad | overlay de actividad `<o>` |
+| `wc_mostrar` | choice | vista Reloj | Mostrar/ocultar la sección de relojes mundiales | Reloj |
+| `alarmas_mostrar` | choice | global | Mostrar/ocultar alarmas en el overlay de actividad y la fila "Próxima alarma" del Dashboard | overlay de actividad `<o>`, Dashboard |
 | `badge_modo` | **eliminado** | — | Reemplazado por el overlay de actividad `<o>` | — |
 
 **Notas clave:**
@@ -227,7 +227,7 @@ centraliza estos valores y defaults. Las vistas reciben ese objeto en su
 persiste vía `store.save`.
 
 ### Vista 0 — Dashboard
-Resumen de solo lectura: fecha+hora, clima, próxima alarma (countdown), timers activos, crono activo, tareas pendientes, pospuestas.
+Resumen de solo lectura: fecha+hora, clima (coloreado con el par `clima` del tema), próxima alarma (countdown **por recurrencia real**), timers activos, crono activo, tareas pendientes, pospuestas.
 
 ```
 ┌──────────────────────────────────────┐
@@ -246,18 +246,20 @@ Resumen de solo lectura: fecha+hora, clima, próxima alarma (countdown), timers 
 **`Enter` (D9):** salta a la vista correspondiente con el item seleccionado. El Dashboard mantiene un `selected_item_idx` que mapea a `(vista, item_idx)`. Tecla `u`: refresh clima manual. Sub-vistas: ninguna.
 
 ### Vista 1 — Reloj
-Reloj local centrado + gestión de relojes mundiales. **Sin clima**: el clima solo se muestra en el Dashboard (decisión de producto). Teclas: `↑↓` sección, `←→` WC, `a`+WC, `e` editar, `d` borrar.
+Reloj local centrado + gestión de relojes mundiales como **filas navegables** con selector `►` y ventana de scroll (máx 4 visibles). **Sin clima**: el clima solo se muestra en el Dashboard (decisión de producto). Teclas: `↑↓`/`jk` navegar WC, `←→` alternar, `J`/`K` reordenar, `a`+WC, `e` editar, `d` borrar. Con `wc_mostrar = "no ver"` la sección de WC no se muestra.
 
 ```
 ┌──────────────────────────────────────┐
 │            [ ◷ Reloj ]               │
 │                                      │
 │     Lun 16 Jun  14:32:05             │
-│                                      │
-│  »BUE 14:32«  NY 13:32  LON 18:32   │
+│  ► BUE 14:32                         │
+│    NY 13:32                          │
+│    LON 18:32                         │
+│    (1–4 de 7)                        │
 │                                      │
 └──────────────────────────────────────┘
-  ↑↓:sección  ←→:WC  a:+WC  e:editar  d:borrar
+  ↑↓ jk:nav WC  ←→:alternar  a:+WC  e:editar  d:borrar  J/K:orden
 ```
 Sub-vistas: Picker de zona (~47 zonas IANA ordenadas por offset, filtro `f`, máx 10 visibles con scroll) → Editor de apodo (muestra zona + diff UTC, input libre) → Confirmación borrado.
 
@@ -350,7 +352,7 @@ Tabs por categoría + items configurables. Teclas: `←→` tab, `↑↓` nav, `
 ┌──────────────────────────────────────┐
 │       [ ⚙ Configuración ]            │
 │                                      │
-│ [Apariencia]  Reloj  Clima  Sonido  Data │
+│ [Apariencia]  Reloj  Clima  Sonido  Sistema │
 │                                      │
 │ ► Tema de color           [Clasico]  │
 │   Mostrar marco           [✔ ON ]    │
@@ -361,11 +363,11 @@ Tabs por categoría + items configurables. Teclas: `←→` tab, `↑↓` nav, `
 ```
 
 Categorías:
-- **Apariencia:** Tema (clasico/mono/calido/alto_contraste/custom), colores custom (marco, texto, clima, helpers, nav), mostrar marco, mostrar helpers. *(globales)*
-- **Reloj:** Mostrar segundos, formato 24h, posponer alarma (min, afecta el overlay de alerta), mostrar WC, mostrar alarmas en el overlay de actividad. *(mostrar_segundos/formato_24h/wc_mostrar afectan a Reloj; posponer y alarmas_mostrar son globales)*
+- **Apariencia:** Tema (clasico/mono/calido/alto_contraste/flatline/custom), colores custom (marco, texto, clima, helpers, nav), mostrar marco, mostrar helpers. *(globales)*
+- **Reloj:** Mostrar segundos, formato 24h, posponer alarma (min, afecta el overlay de alerta), mostrar WC, mostrar alarmas en el overlay de actividad. *(mostrar_segundos/formato_24h/wc_mostrar afectan a Reloj; posponer y alarmas_mostrar son globales — alarmas_mostrar también oculta la "Próxima alarma" del Dashboard)*
 - **Clima:** Mostrar clima, ubicación, intervalo auto-update, mostrar "hace N min", reintentos máx, espera entre reintentos. *(afecta solo al Dashboard)*
 - **Sonido:** Sonido ON/OFF, origen (default/custom), archivo default, archivo custom (browser). *(afecta el overlay de alerta)*
-- **Data:** Crear backup, restaurar backup, ver log de errores, exportar log. *(acciones, no config)*
+- **Sistema:** Crear backup, restaurar backup, ver log de errores, exportar log, comprobar actualización. *(acciones, no config)*
 
 > **Nota:** `badge_modo` quedó **eliminado** (fue reemplazado por el overlay de actividad `<o>`).
 
@@ -533,8 +535,10 @@ Orden de features por complejidad: stopwatch (más simple, valida el patrón), t
 ## 12. Estado de validación (fases 5-6)
 
 Implementación completa del refactor, **milestone v1.0** + self-update **v1.1**
-+ overlay de actividad **v1.2**. Suite: `414` tests (pytest) · pyright 0 errores
++ overlay de actividad **v1.2**. Suite: `476` tests (pytest) · pyright 0 errores
 (v1.0) · black. Monolito original eliminado (`clock.py`).
+
+- **Batch de bugs v0.29–v0.36:** captura de teclas durante la edición (router `capture`), confirmación de borrado (`y/Y/s/S`), reorden con `J/K` (alarmas/timers/WCs), navegación `hjkl` en todas las vistas, próxima alarma del Dashboard calculada por **recurrencia real** (`_next_occurrence`), WCs del Reloj como filas con `►` + ventana de scroll, `wc_mostrar` y `alarmas_mostrar` funcionales (incluyen Dashboard), Config sin tab "Data" (acciones → Sistema) + selector `►` + tema **flatline**.
 
 - **Flows e2e por dispatch** (test_app.py): edición completa de alarma (nombre→hora→días→guardar con `needs_save`), alta de timers/todo/clock-picker, ciclo de tema en Config (reinstala pairs), roundtrip `save_now→store→load`, render micro-tier.
 - **Overlays** (test_overlay.py): `draw_alert`/`draw_help`/`draw_log_viewer` en full y tamaños mínimos, scroll válido.
@@ -576,7 +580,7 @@ clock --uninstall   # pide confirmación; y además pregunta si borrar ~/.config
 Solo desinstala si el código vive en `~/.local/share/clock-tui` (protege otras copias/el repo de desarrollo).
 
 ### Convención de versionado (v1.1+)
-- **semver de producto:** `pyproject.toml` + `__version__` (`1.1.0`).
-- **tags de release** en el repo público `braiidev/clock`: `v1.1.0`, etc.
+- **semver de producto:** `pyproject.toml` + `__version__` (`1.2.0`).
+- **tags de release** en el repo público `braiidev/clock`: `v1.2.0`, etc.
 - **tags de task** en historial local: `v0.N` (contador interno, una por commit).
 - El self-update **no compara** ambos mundos: decide por conteo de commits (`HEAD..origin/main`).
