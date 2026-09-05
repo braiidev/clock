@@ -805,6 +805,10 @@ def test_capture_activa_por_edicion(app):
     assert app._capture_active() is True
     app.timers.edit_mode = False
     assert app._capture_active() is False
+    app.timers.confirm_delete = True
+    assert app._capture_active() is True
+    app.timers.confirm_delete = False
+    assert app._capture_active() is False
 
     app.router.goto_view(VIEW_ALARMS)
     app._alarm_edit["edit_mode"] = True

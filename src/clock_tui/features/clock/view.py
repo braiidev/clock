@@ -51,7 +51,7 @@ def render(
         rows = [
             date_line,
             f"\u00bfEliminar reloj '{nombre}'?",
-            "  y / Enter = S\u00ed    cualquier tecla = No",
+            "  y / s / Enter = S\u00ed    cualquier tecla = No",
         ]
         draw_frame(
             stdscr,

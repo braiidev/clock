@@ -31,6 +31,10 @@ def render(
         _render_edit(stdscr, model, pairs=pairs, mostrar_marco=mostrar_marco)
         return
 
+    if model.confirm_delete:
+        _render_confirm(stdscr, model, pairs=pairs, mostrar_marco=mostrar_marco)
+        return
+
     rows = _build_rows(model)
     helper = (
         [
@@ -66,6 +70,28 @@ def _render_edit(
         rows,
         mostrar_marco=mostrar_marco,
         helper_lines=helper,
+        pairs=pairs,
+    )
+
+
+def _render_confirm(
+    stdscr: Any,
+    model: TimersModel,
+    *,
+    pairs: dict[str, int],
+    mostrar_marco: bool,
+) -> None:
+    t = model.timers[model.selected_idx] if model.timers else None
+    name = t.name if t else "?"
+    rows = [
+        f"\u00bfEliminar '{name}'?",
+        "  y / s / Enter = S\u00ed    cualquier tecla = No",
+    ]
+    draw_frame(
+        stdscr,
+        "\u23f1 Timers",
+        rows,
+        mostrar_marco=mostrar_marco,
         pairs=pairs,
     )
 

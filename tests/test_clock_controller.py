@@ -227,6 +227,24 @@ def test_confirm_delete_yes():
     assert r.needs_save is True
 
 
+def test_confirm_delete_s_si():
+    c = ClockController()
+    m = _model(2)
+    m.confirm_delete = True
+    c.handle(m, ord("s"), _ctx())
+    assert len(m.wc_list) == 1
+    assert m.confirm_delete is False
+
+
+def test_confirm_delete_S_mayuscula():
+    c = ClockController()
+    m = _model(2)
+    m.confirm_delete = True
+    c.handle(m, ord("S"), _ctx())
+    assert len(m.wc_list) == 1
+    assert m.confirm_delete is False
+
+
 def test_confirm_delete_enter():
     c = ClockController()
     m = _model(2)

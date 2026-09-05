@@ -316,7 +316,7 @@ class ClockApp:
             es = self._alarm_edit
             return bool(es.get("edit_mode") or es.get("confirm_delete"))
         if view == VIEW_TIMERS:
-            return bool(self.timers.edit_mode)
+            return bool(self.timers.edit_mode or self.timers.confirm_delete)
         if view == VIEW_TODO:
             return bool(self.todo.edit_mode or self.todo.confirm_delete)
         if view == VIEW_CLOCK:

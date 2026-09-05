@@ -70,18 +70,68 @@ def test_add_at_max_does_nothing():
 # ── Delete ──
 
 
-def test_delete_timer():
+def test_delete_pide_confirmacion():
+    """'d' ya no borra directo: entra en modo confirmación."""
     c = TimersController()
     m = _model(3)
     r = c.handle(m, ord("d"), _ctx())
+    assert m.confirm_delete is True
+    assert r.needs_save is False
+    assert len(m.timers) == 3
+
+
+def test_confirm_delete_con_s():
+    c = TimersController()
+    m = _model(3)
+    c.handle(m, ord("d"), _ctx())
+    r = c.handle(m, ord("s"), _ctx())
     assert len(m.timers) == 2
+    assert m.confirm_delete is False
     assert r.needs_save is True
+
+
+def test_confirm_delete_con_y():
+    c = TimersController()
+    m = _model(3)
+    c.handle(m, ord("d"), _ctx())
+    c.handle(m, ord("y"), _ctx())
+    assert len(m.timers) == 2
+    assert m.confirm_delete is False
+
+
+def test_confirm_delete_con_S_mayuscula():
+    c = TimersController()
+    m = _model(3)
+    c.handle(m, ord("d"), _ctx())
+    c.handle(m, ord("S"), _ctx())
+    assert len(m.timers) == 2
+
+
+def test_confirm_delete_con_enter():
+    c = TimersController()
+    m = _model(3)
+    c.handle(m, ord("d"), _ctx())
+    c.handle(m, ord("\n"), _ctx())
+    assert len(m.timers) == 2
+
+
+def test_confirm_delete_cualquier_tecla_cancela():
+    c = TimersController()
+    m = _model(3)
+    c.handle(m, ord("d"), _ctx())
+    r = c.handle(m, ord("x"), _ctx())
+    assert len(m.timers) == 3
+    assert m.confirm_delete is False
+    assert r.needs_save is False
 
 
 def test_delete_last_keeps_one():
     c = TimersController()
     m = _model(1)
     c.handle(m, ord("d"), _ctx())
+    assert len(m.timers) == 1
+    assert m.confirm_delete is False
+    c.handle(m, ord("y"), _ctx())
     assert len(m.timers) == 1
 
 
@@ -90,6 +140,7 @@ def test_delete_clamps_idx():
     m = _model(3)
     m.selected_idx = 2
     c.handle(m, ord("d"), _ctx())
+    c.handle(m, ord("y"), _ctx())
     assert m.selected_idx == 1
 
 

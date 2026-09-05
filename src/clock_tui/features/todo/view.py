@@ -184,7 +184,7 @@ def _render_confirm(
         now_str,
         "",
         f"\u00bfEliminar '{texto}'?",
-        "  y / Enter = S\u00ed    cualquier tecla = No",
+        "  y / s / Enter = S\u00ed    cualquier tecla = No",
     ]
     draw_frame(
         stdscr,

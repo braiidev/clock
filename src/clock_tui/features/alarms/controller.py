@@ -143,7 +143,7 @@ class AlarmsController:
     def _handle_confirm(
         self, model: AlarmsModel, key: int, es: dict[str, Any]
     ) -> ActionResult:
-        if key in (ord("y"), ord("Y"), ord("\n"), 10, 13):
+        if key in (ord("y"), ord("Y"), ord("s"), ord("S"), ord("\n"), 10, 13):
             if model.alarms:
                 model.alarms.pop(model.selected_idx)
                 if model.selected_idx >= len(model.alarms):

@@ -91,6 +91,23 @@ def test_confirm_delete_yes():
     assert r.needs_save is True
 
 
+def test_confirm_delete_s_si():
+    c = AlarmsController()
+    m = _model()
+    es = _es(confirm_delete=True)
+    c.handle(m, ord("s"), _ctx(), es)
+    assert len(m.alarms) == 2
+    assert es["confirm_delete"] is False
+
+
+def test_confirm_delete_S_mayuscula():
+    c = AlarmsController()
+    m = _model()
+    es = _es(confirm_delete=True)
+    c.handle(m, ord("S"), _ctx(), es)
+    assert len(m.alarms) == 2
+
+
 def test_confirm_delete_enter():
     c = AlarmsController()
     m = _model()

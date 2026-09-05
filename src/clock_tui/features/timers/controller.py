@@ -37,9 +37,24 @@ class TimersController:
         """Procesa una tecla y retorna el ActionResult."""
         if model.edit_mode:
             return self._handle_edit(model, key)
+        if model.confirm_delete:
+            return self._handle_confirm(model, key)
         return self._handle_normal(model, key, now)
 
     # ── Edit mode ──
+
+    def _handle_confirm(self, model: TimersModel, key: int) -> ActionResult:
+        """Confirma (o cancela) el borrado del timer seleccionado."""
+        if key in (ord("y"), ord("Y"), ord("s"), ord("S"), ord("\n"), 10, 13):
+            if len(model.timers) > 1:
+                model.timers.pop(model.selected_idx)
+                if model.selected_idx >= len(model.timers):
+                    model.selected_idx = max(0, len(model.timers) - 1)
+                model._clamp_scroll()
+                model.confirm_delete = False
+                return ActionResult(needs_save=True)
+        model.confirm_delete = False
+        return ActionResult()
 
     def _handle_edit(self, model: TimersModel, key: int) -> ActionResult:
         if key in (ord("\n"), 10, 13):
@@ -104,11 +119,8 @@ class TimersController:
     def _delete(self, model: TimersModel) -> ActionResult:
         if len(model.timers) <= 1:
             return ActionResult()
-        model.timers.pop(model.selected_idx)
-        if model.selected_idx >= len(model.timers):
-            model.selected_idx = max(0, len(model.timers) - 1)
-        model._clamp_scroll()
-        return ActionResult(needs_save=True)
+        model.confirm_delete = True
+        return ActionResult()
 
     def _edit_name(self, model: TimersModel) -> ActionResult:
         t = model.timers[model.selected_idx] if model.timers else None

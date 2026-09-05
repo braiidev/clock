@@ -40,6 +40,7 @@ class TimersModel:
     edit_target: int = 0
     temp_name: str = ""
     time_field: int = 0
+    confirm_delete: bool = False
 
     @classmethod
     def from_data(cls, data_timers: list[dict]) -> TimersModel:

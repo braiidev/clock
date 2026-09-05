@@ -119,7 +119,7 @@ def _render_confirm(
     name = a.nombre if a else "?"
     rows = [
         f"\u00bfEliminar '{name}'?",
-        "  y / Enter = S\u00ed    cualquier tecla = No",
+        "  y / s / Enter = S\u00ed    cualquier tecla = No",
     ]
     draw_frame(
         stdscr,

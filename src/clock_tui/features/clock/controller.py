@@ -99,7 +99,7 @@ class ClockController:
     # ── Confirm delete ──
 
     def _handle_confirm(self, model: ClockModel, key: int) -> ActionResult:
-        if key in (ord("y"), ord("Y"), ord("\n"), 10, 13):
+        if key in (ord("y"), ord("Y"), ord("s"), ord("S"), ord("\n"), 10, 13):
             model.wc_delete(model.wc_idx)
             model.confirm_delete = False
             return ActionResult(needs_save=True)

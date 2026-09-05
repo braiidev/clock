@@ -199,6 +199,24 @@ def test_confirm_yes():
     assert r.needs_save is True
 
 
+def test_confirm_s_si():
+    c = TodoController()
+    m = _model(2)
+    m.confirm_delete = True
+    c.handle(m, ord("s"), _ctx())
+    assert len(m.todos) == 1
+    assert m.confirm_delete is False
+
+
+def test_confirm_S_mayuscula():
+    c = TodoController()
+    m = _model(2)
+    m.confirm_delete = True
+    c.handle(m, ord("S"), _ctx())
+    assert len(m.todos) == 1
+    assert m.confirm_delete is False
+
+
 def test_confirm_enter():
     c = TodoController()
     m = _model(2)
