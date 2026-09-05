@@ -546,7 +546,8 @@ Orden de features por complejidad: stopwatch (más simple, valida el patrón), t
 ## 12. Estado de validación (fases 5-6)
 
 Implementación completa del refactor, **milestone v1.0** + self-update **v1.1**
-+ overlay de actividad **v1.2**. Suite: `509` tests (pytest) · pyright 0 errores
++ overlay de actividad **v1.2** + responsive 3 estados **v1.3**. Suite: `525`
+tests (pytest, excluye 1 de entorno) · pyright 0 errores
 · black. Monolito original eliminado (`clock.py`).
 
 - **Contador `(n/N)` en el borde inferior (v0.48–v0.49):** todas las listas
