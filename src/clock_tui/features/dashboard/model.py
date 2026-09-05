@@ -152,6 +152,9 @@ class DashboardSnapshot:
         return f"{DIAS[now.weekday()]} {now.day} {MESES[now.month - 1]}"
 
 
+_DIAS_CORTO = ["Lun", "Mar", "Mi\u00e9", "Jue", "Vie", "S\u00e1b", "Dom"]
+
+
 def _fmt_next_alarm(alarm: dict, now: datetime.datetime) -> str:
     a = alarm
     rep = _repeat_days_str(a.get("repeat_days"))
@@ -160,5 +163,7 @@ def _fmt_next_alarm(alarm: dict, now: datetime.datetime) -> str:
     total_min = max(0, int((next_dt - now).total_seconds()) // 60)
     days, rest = divmod(total_min, 1440)
     h_rest, m_rest = divmod(rest, 60)
-    cuando = f"en {days}d {h_rest}h" if days else f"en {h_rest}h {m_rest}m"
+    cuando = f"en {h_rest}h {m_rest}m"
+    if days:
+        cuando = f"{_DIAS_CORTO[next_dt.weekday()]} \u00b7 en {days}d {h_rest}h"
     return f"\u25f7 Pr\u00f3x: {a['nombre']} {a['hora']:02d}:{a['minutos']:02d}{rep_txt}  ({cuando})"

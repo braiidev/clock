@@ -1,12 +1,12 @@
 # TODO
 
 ## Doing
-- [ ] v1.2.13: Dashboard — "Próxima alarma" muestra el día (desambiguar 1d+ de repetición) - v0.40
-
-## Next
 - [ ] v1.2.14: Reloj — WC muestran diferencia local-wc - v0.41
 
+## Next
+
 ## Done
+- [x] v1.2.13: Dashboard — "Próxima alarma" muestra el día (desambiguar 1d+ de repetición) - v0.40
 - [x] v1.2.12: hjkl espejo de flechas en editores/selectores - v0.39
 - [x] v1.2.11: Dashboard — navegación persiste (arrows y hjkl arreglados) - v0.38
 - [x] v1.2.10: Auditoría (pytest/pyright/black) + docs + bump semver 1.2.0 - v0.36

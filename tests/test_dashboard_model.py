@@ -41,7 +41,9 @@ def test_format_next_alarm_cuenta_dias():
     }
     txt = _fmt_next_alarm(alarm, now)
     assert "L-V" in txt
-    assert "en 2d 0h" in txt
+    assert "Lun · en 2d 0h" in txt
+    assert "Dom" not in txt
+    assert "dom" not in txt
 
 
 def test_format_next_alarm_hoy_en_horas():
