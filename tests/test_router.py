@@ -147,6 +147,35 @@ def test_activity_any_key_closes():
     assert res.feature_dispatched is False
 
 
+def test_activity_j_navigates_without_closing():
+    r = Router()
+    r.goto_view(VIEW_CLOCK)
+    r.route(ord("o"), _dispatch)
+    res = r.route(ord("j"), _dispatch)
+    assert res.activity_nav == 1
+    assert r.activity_open is True
+    assert res.toggle_activity is False
+
+
+def test_activity_k_navigates_without_closing():
+    r = Router()
+    r.goto_view(VIEW_CLOCK)
+    r.route(ord("o"), _dispatch)
+    res = r.route(ord("k"), _dispatch)
+    assert res.activity_nav == -1
+    assert r.activity_open is True
+    assert res.toggle_activity is False
+
+
+def test_activity_arrow_keys_navigate():
+    r = Router()
+    r.goto_view(VIEW_CLOCK)
+    r.route(ord("o"), _dispatch)
+    assert r.route(258, _dispatch).activity_nav == 1  # ↓
+    assert r.route(259, _dispatch).activity_nav == -1  # ↑
+    assert r.activity_open is True
+
+
 def test_activity_q_still_quits():
     r = Router()
     r.goto_view(VIEW_CLOCK)

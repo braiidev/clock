@@ -849,6 +849,33 @@ def test_o_key_toggles_activity_overlay(app):
     assert app.router.activity_open is False
 
 
+def test_activity_jk_navega_sin_cerrar(app):
+    from clock_tui.app.router import VIEW_CLOCK
+
+    app.todo.todos = [
+        {"tipo": "tarea", "texto": f"Tarea {i}", "done": False, "orden": i}
+        for i in range(5)
+    ]
+    app.router.goto_view(VIEW_CLOCK)
+    app._handle_key(ord("o"))
+    assert app._handle_key(ord("j")) is False
+    assert app.router.activity_open is True
+    assert app._activity_idx == 0
+    for _ in range(10):
+        app._activity_navigate(1)
+    n = len(app._activity_flat_rows())
+    assert app._activity_idx == n - 1
+    app._activity_navigate(1)
+    assert app._activity_idx == n - 1  # clamp superior
+
+
+def test_activity_navigate_primera_vez_k_va_al_final(app):
+    app.todo.todos = [{"tipo": "tarea", "texto": "x", "done": False, "orden": 0}]
+    assert app._activity_idx == -1
+    app._activity_navigate(-1)
+    assert app._activity_idx == len(app._activity_flat_rows()) - 1
+
+
 def test_o_ignored_on_dashboard(app):
     assert app.router.activity_open is False
     app._handle_key(ord("o"))

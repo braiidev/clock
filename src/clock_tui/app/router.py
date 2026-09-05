@@ -23,6 +23,10 @@ VIEW_CONFIG = 6
 
 NUM_VIEWS = 7
 
+# Valores de curses para las flechas (router es una capa pura, sin imports).
+_KEY_UP = 259
+_KEY_DOWN = 258
+
 # Nombres por índice (para tab bar / helpers)
 VIEW_NAMES: list[str] = [
     "Dash",
@@ -42,6 +46,7 @@ class RouterResult:
     toggle_help: bool = False
     toggle_activity: bool = False
     view_changed: bool = False
+    activity_nav: int = 0  # ±1: mover la selección del overlay de actividad
 
     # resultado del controller de la feature (si la tecla no era global)
     feature_result: Any = None
@@ -90,10 +95,15 @@ class Router:
                 self.help_open = False
                 return RouterResult(toggle_help=True)
 
-            # Overlay de actividad abierto: cualquier tecla lo cierra (excepto q).
+            # Overlay de actividad abierto: j/k/flechas navegan la lista;
+            # cualquier otra tecla lo cierra (excepto q que sale).
             if self.activity_open:
                 if key == ord("q"):
                     return RouterResult(quit_app=True)
+                if key in (ord("j"), _KEY_DOWN):
+                    return RouterResult(activity_nav=1)
+                if key in (ord("k"), _KEY_UP):
+                    return RouterResult(activity_nav=-1)
                 self.activity_open = False
                 return RouterResult(toggle_activity=True)
 

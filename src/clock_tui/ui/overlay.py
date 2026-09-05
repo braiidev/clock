@@ -6,7 +6,7 @@ import curses
 import datetime
 from typing import Any, Sequence
 
-from .frame import Painter, draw_box, display_width
+from .frame import Painter, display_width, draw_box, scroll_window
 
 
 def draw_alert(
@@ -79,11 +79,15 @@ def draw_activity(
     stdscr: Any,
     sections: Sequence[tuple[str, Sequence[str]]],
     pair_bg: int,
-) -> None:
+    selected: int = -1,
+    scroll: int = 0,
+) -> int:
     """Dibuja el overlay de actividad bajo demanda (tecla global `o`).
 
     `sections` es una secuencia de (título, líneas). Si está vacía ya renderiza
-    el estado vacío. Cualquier tecla lo cierra (lo gestiona el router).
+    el estado vacío. `selected` índice la lista plana (puede ser -1 = sin
+    selección); `scroll` es el offset actual. j/k/flechas navegan (lo gestiona
+    el router), cualquier otra tecla lo cierra. Retorna el scroll usado.
     """
     painter = Painter(stdscr)
     sh, sw = painter.size
@@ -95,6 +99,7 @@ def draw_activity(
         else:
             rows.extend((str(it), False) for it in items)
         rows.append(("", False))
+    n = len(rows)
 
     box_w = min(max(display_width(t) for t, _ in rows) + 8, sw - 4)
     box_w = max(box_w, 20)
@@ -106,6 +111,7 @@ def draw_activity(
     marco_attr = pair_bg | curses.A_BOLD
     titulo_attr = pair_bg | curses.A_BOLD
     texto_attr = pair_bg
+    sel_attr = pair_bg | curses.A_REVERSE
     helper_attr = pair_bg | curses.A_DIM
 
     for r in range(box_h):
@@ -114,14 +120,29 @@ def draw_activity(
 
     content_w = box_w - 6
     cap = box_h - 4
-    body = rows if len(rows) <= cap else rows[-cap:]
+    if selected >= 0:
+        selected = min(selected, n - 1)
+        scroll = scroll_window(selected, n, cap, scroll)
+    else:
+        scroll = 0
+    body = rows[scroll : scroll + cap]
     for i, (line, es_titulo) in enumerate(body):
+        i_abs = i + scroll
+        es_sel = selected >= 0 and i_abs == selected
         a = titulo_attr if es_titulo else texto_attr
+        if es_sel:
+            a |= curses.A_REVERSE
         painter.safe(sy + 2 + i, sx + 3, line[:content_w], a)
-    hint = "o:cualquier tecla cierra"
+
+    if selected >= 0 and n > 0:
+        counter = f"({selected + 1}/{n})"
+        cw = display_width(counter)
+        painter.safe(sy + box_h - 2, sx + box_w - cw - 3, counter, helper_attr)
+    hint = "↑↓ jk:navegar  otra tecla:cerrar"
     painter.safe(
         sy + box_h - 1, sx + (box_w - display_width(hint)) // 2, hint, helper_attr
     )
+    return scroll
 
 
 def draw_log_viewer(

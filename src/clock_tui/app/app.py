@@ -102,6 +102,8 @@ class ClockApp:
         self.router = Router()
         self._dash_sel = 0
         self._dash_scroll = 0
+        self._activity_idx = -1
+        self._activity_scroll = 0
 
         # Servicio de clima (thread en background).
         self.weather = weather_service.WeatherService(
@@ -308,6 +310,8 @@ class ClockApp:
         res = self.router.route(key, self._dispatch)
         if res.quit_app:
             return True
+        if res.activity_nav:
+            self._activity_navigate(res.activity_nav)
         if res.feature_dispatched and res.feature_result is not None:
             self._handle_feature_result(res.feature_result)
         return False
@@ -750,11 +754,35 @@ class ClockApp:
         return secciones
 
     def _render_activity_overlay(self) -> None:
-        draw_activity(
+        self._activity_scroll = draw_activity(
             self.stdscr,
             self._build_activity_sections(),
             curses.color_pair(_HELP_BG_PAIR),
+            selected=self._activity_idx,
+            scroll=self._activity_scroll,
         )
+
+    def _activity_flat_rows(self) -> list[tuple[str, bool]]:
+        """Filas planas del overlay (título, es_titulo) para acotar la navegación."""
+        rows: list[tuple[str, bool]] = []
+        for titulo, items in self._build_activity_sections():
+            rows.append((titulo, True))
+            if not items:
+                rows.append(("(nada)", False))
+            else:
+                rows.extend((str(it), False) for it in items)
+            rows.append(("", False))
+        return rows
+
+    def _activity_navigate(self, delta: int) -> None:
+        n = len(self._activity_flat_rows())
+        if n == 0:
+            self._activity_idx = -1
+            return
+        if self._activity_idx < 0:
+            self._activity_idx = 0 if delta > 0 else n - 1
+        else:
+            self._activity_idx = max(0, min(n - 1, self._activity_idx + delta))
 
     def _dispatch(self, view: int, key: int) -> object:
         if view == VIEW_DASHBOARD:
