@@ -17,7 +17,7 @@ from clock_tui.app.router import (
     VIEW_TODO,
 )
 from clock_tui.core.time_utils import secs_to_hms
-from clock_tui.core.recurrence import _repeat_days_str
+from clock_tui.core.recurrence import _next_occurrence, _repeat_days_str
 
 
 def _todo_is_done(t: dict) -> bool:
@@ -156,9 +156,9 @@ def _fmt_next_alarm(alarm: dict, now: datetime.datetime) -> str:
     a = alarm
     rep = _repeat_days_str(a.get("repeat_days"))
     rep_txt = f" \u21bb{rep}" if rep != "una vez" else ""
-    alarm_dt = now.replace(hour=a["hora"], minute=a["minutos"], second=0, microsecond=0)
-    if alarm_dt <= now:
-        alarm_dt += datetime.timedelta(days=1)
-    diff = alarm_dt - now
-    h_rest, m_rest = divmod(int(diff.total_seconds()) // 60, 60)
-    return f"\u25f7 Pr\u00f3x: {a['nombre']} {a['hora']:02d}:{a['minutos']:02d}{rep_txt}  (en {h_rest}h {m_rest}m)"
+    next_dt = _next_occurrence(a["hora"], a["minutos"], a.get("repeat_days"), now)
+    total_min = max(0, int((next_dt - now).total_seconds()) // 60)
+    days, rest = divmod(total_min, 1440)
+    h_rest, m_rest = divmod(rest, 60)
+    cuando = f"en {days}d {h_rest}h" if days else f"en {h_rest}h {m_rest}m"
+    return f"\u25f7 Pr\u00f3x: {a['nombre']} {a['hora']:02d}:{a['minutos']:02d}{rep_txt}  ({cuando})"

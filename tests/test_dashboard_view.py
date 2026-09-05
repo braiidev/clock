@@ -45,3 +45,50 @@ def test_render_does_not_mutate_snapshot():
 
     assert snap.selected_idx == idx_before
     assert snap.active_timers == timers_before
+
+
+def test_render_clima_usa_pair_clima():
+    snap = DashboardSnapshot(
+        now=datetime.datetime(2025, 6, 16, 14, 5, 9),
+        weather_line="UV 23° Soleado",
+        active_timers=[],
+        total_tasks=0,
+        done_tasks=0,
+        selected_idx=0,
+    )
+    captured: dict = {}
+
+    class FakeStdscr:
+        def getmaxyx(self):
+            return 24, 80
+
+        def erase(self):
+            pass
+
+        def addstr(self, *a, **kw):
+            pass
+
+        def refresh(self):
+            pass
+
+    from clock_tui.features.dashboard import view as d_view
+
+    def fake_draw_frame(stdscr, title, rows, row_attrs=None, **kw):
+        captured["attrs"] = row_attrs
+        captured["rows"] = list(rows)
+
+    orig = d_view.draw_frame
+    d_view.draw_frame = fake_draw_frame  # type: ignore[assignment]
+    try:
+        d_view.render(
+            FakeStdscr(),
+            snap,
+            theme={},
+            pairs={"marco": 1, "texto": 6, "helpers": 2, "clima": 31},
+            config={"mostrar_marco": True, "mostrar_helpers": True},
+        )
+    finally:
+        d_view.draw_frame = orig
+
+    assert captured["rows"][1] == "UV 23° Soleado"
+    assert captured["attrs"] == [None, 31]

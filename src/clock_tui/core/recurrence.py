@@ -36,6 +36,27 @@ def _repeat_days_str(repeat_days: Any) -> str:
     return "".join(DIAS_ABBR[d] for d in dias)
 
 
+def _next_occurrence(
+    hora: int, minutos: int, repeat_days: Any, now: datetime.datetime
+) -> datetime.datetime:
+    """Próxima vez que sonará una alarma según sus días de repetición.
+
+    Misma lógica que AlarmsModel.check: si hoy no es día de repetición (o la
+    hora ya pasó), busca el siguiente día en `repeat_days`. Lista vacía == una
+    vez → hoy si la hora no pasó, si no mañana.
+    """
+    dias = _repeat_days_normalize(repeat_days)
+    cand = now.replace(hour=hora, minute=minutos, second=0, microsecond=0)
+    if cand > now and (not dias or now.weekday() in dias):
+        return cand
+    if not dias:
+        return cand + datetime.timedelta(days=1)
+    for d in range(1, 8):
+        if (now + datetime.timedelta(days=d)).weekday() in dias:
+            return cand + datetime.timedelta(days=d)
+    return cand + datetime.timedelta(days=1)
+
+
 def _todo_is_done(t: dict[str, Any], hoy: str | None = None) -> bool:
     """Indica si una tarea está hecha. Las recurrentes dependen de la fecha."""
     dias = _repeat_days_normalize(t.get("repeat_days"))

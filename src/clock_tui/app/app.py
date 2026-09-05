@@ -33,6 +33,7 @@ from clock_tui.app.router import (
 )
 from clock_tui.core import store as store_mod
 from clock_tui.core.log import LOG_FILE, _log_mark_all_seen, _log_read_all
+from clock_tui.core.recurrence import _next_occurrence
 from clock_tui.core.store import pop_persistence_error
 from clock_tui.core.theme import (
     _ALERT_BLINK_PAIR_A,
@@ -795,7 +796,11 @@ class ClockApp:
         activados = [a for a in self.alarms.alarms if a.status == "activado"]
         if not activados:
             return None
-        prox = min(activados, key=lambda a: (a.hora, a.minutos))
+        now = datetime.datetime.now()
+        prox = min(
+            activados,
+            key=lambda a: _next_occurrence(a.hora, a.minutos, a.repeat_days, now),
+        )
         return {
             "nombre": prox.nombre,
             "hora": prox.hora,

@@ -5,6 +5,7 @@ import datetime
 from clock_tui.features.dashboard.model import (
     ActivityRow,
     DashboardSnapshot,
+    _fmt_next_alarm,
     _todo_is_done,
 )
 
@@ -28,6 +29,26 @@ def test_format_time_12h():
 def test_format_time_no_seconds():
     snap = _snap()
     assert DashboardSnapshot.format_time(snap.now, show_seconds=False) == "14:05"
+
+
+def test_format_next_alarm_cuenta_dias():
+    now = datetime.datetime(2026, 9, 5, 10, 0)  # sábado → L-V el lunes
+    alarm = {
+        "nombre": "Despertar",
+        "hora": 10,
+        "minutos": 0,
+        "repeat_days": [0, 1, 2, 3, 4],
+    }
+    txt = _fmt_next_alarm(alarm, now)
+    assert "L-V" in txt
+    assert "en 2d 0h" in txt
+
+
+def test_format_next_alarm_hoy_en_horas():
+    now = datetime.datetime(2026, 9, 5, 10, 0)  # sábado, S-D repite hoy
+    alarm = {"nombre": "Eco", "hora": 12, "minutos": 5, "repeat_days": [5, 6]}
+    txt = _fmt_next_alarm(alarm, now)
+    assert "en 2h 5m" in txt
 
 
 def test_format_date():

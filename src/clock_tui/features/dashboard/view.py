@@ -38,15 +38,19 @@ def render(
     now_line = f"{date_str}  {time_str}"
 
     rows = [now_line]
+    row_attrs: list[int | None] = [None]
     if snap.weather_line:
         rows.append(snap.weather_line)
+        row_attrs.append(pairs.get("clima", 0))
 
     activities = snap.activities
     if activities:
         rows.append("  " + "\u2500" * 24)
+        row_attrs.append(None)
         for i, act in enumerate(activities):
             sel = "\u25ba" if i == snap.selected_idx else " "
             rows.append(f"{sel} {act.label}")
+            row_attrs.append(None)
 
     helper = (
         ["\u2191\u2193 jk:navegar  Enter:ir a vista  u:refresh clima"]
@@ -60,6 +64,7 @@ def render(
         rows,
         mostrar_marco=mostrar_marco,
         helper_lines=helper,
+        row_attrs=row_attrs,
         pairs=pairs,
     )
 
@@ -75,13 +80,16 @@ def _render_minimum(
         snap.now, show_seconds=snap.show_seconds, format_24h=snap.format_24h
     )
     rows = [time_str]
+    row_attrs: list[int | None] = [None]
     if snap.weather_line:
         rows.append(snap.weather_line)
+        row_attrs.append(pairs.get("clima", 0))
 
     draw_frame(
         stdscr,
         "\u25c8 Dashboard",
         rows,
         mostrar_marco=mostrar_marco,
+        row_attrs=row_attrs,
         pairs=pairs,
     )

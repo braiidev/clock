@@ -1,6 +1,9 @@
 """Tests para core.recurrence."""
 
+import datetime
+
 from clock_tui.core.recurrence import (
+    _next_occurrence,
     _repeat_days_normalize,
     _repeat_days_str,
     _todo_is_done,
@@ -42,3 +45,34 @@ def test_todo_done_recurrent_by_date():
     assert _todo_is_done(t, hoy="2026-09-05") is False
     _todo_set_done(t, False, hoy="2026-09-05")
     assert t["last_done_date"] is None
+
+
+def test_next_occurrence_hoy_si_hora_no_paso():
+    now = datetime.datetime(2026, 9, 5, 10, 0)
+    # 2026-09-05 es sábado (weekday 5)
+    r = _next_occurrence(15, 30, [], now)
+    assert r == datetime.datetime(2026, 9, 5, 15, 30)
+
+
+def test_next_occurrence_manana_si_hora_paso():
+    now = datetime.datetime(2026, 9, 5, 10, 0)
+    r = _next_occurrence(9, 0, [], now)
+    assert r == datetime.datetime(2026, 9, 6, 9, 0)
+
+
+def test_next_occurrence_hoy_si_dia_repite_y_no_paso():
+    now = datetime.datetime(2026, 9, 5, 10, 0)  # sábado
+    r = _next_occurrence(15, 0, [5, 6], now)  # S-D
+    assert r == datetime.datetime(2026, 9, 5, 15, 0)
+
+
+def test_next_occurrence_salta_dia_no_repetido():
+    now = datetime.datetime(2026, 9, 5, 10, 0)  # sábado
+    r = _next_occurrence(10, 0, [0, 1], now)  # L-X
+    assert r == datetime.datetime(2026, 9, 7, 10, 0)
+
+
+def test_next_occurrence_hora_pasada_salta_al_proximo_dia_repetido():
+    now = datetime.datetime(2026, 9, 5, 10, 0)  # sábado
+    r = _next_occurrence(9, 0, [5, 6], now)  # ya pasó hoy, mañana
+    assert r == datetime.datetime(2026, 9, 6, 9, 0)

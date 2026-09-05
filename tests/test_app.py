@@ -769,6 +769,36 @@ def test_build_activity_sections_con_contenido(app):
     assert por_titulo["Tareas pendientes"] == ["☐ 1. Correr", "☐ 3. Comprar pan"]
 
 
+def test_next_alarm_data_escoge_por_recurrencia_real(app, monkeypatch):
+    import datetime as _dt
+
+    from clock_tui.app import app as app_mod
+    from clock_tui.features.alarms.model import Alarm
+
+    class _FakeDT(_dt.datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return _dt.datetime(2026, 9, 5, 10, 0)  # sábado
+
+    monkeypatch.setattr(app_mod.datetime, "datetime", _FakeDT)
+
+    app.alarms.alarms = [
+        Alarm(nombre="Diaria", hora=9, minutos=0, repeat_days=[0, 1, 2, 3, 4, 5, 6]),
+        Alarm(nombre="Finde", hora=11, minutos=30, repeat_days=[5, 6]),
+        Alarm(nombre="Lunes", hora=8, minutos=0, repeat_days=[0]),
+        Alarm(nombre="Pausa", hora=5, minutos=0, status="pausado"),
+    ]
+    data = app._next_alarm_data()
+    assert data["nombre"] == "Finde"
+    assert data["hora"] == 11
+    assert data["minutos"] == 30
+
+
+def test_next_alarm_data_sin_activados(app):
+    app.alarms.alarms.clear()
+    assert app._next_alarm_data() is None
+
+
 def test_build_activity_sections_alarmas_ocultas(app):
     from clock_tui.features.alarms.model import Alarm
 

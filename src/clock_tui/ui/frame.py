@@ -115,7 +115,7 @@ def draw_frame(
     weather_line: str | None = None,
     footer: str = "",
     pairs: dict[str, int] | None = None,
-    row_attrs: Sequence[int] | None = None,
+    row_attrs: Sequence[int | None] | None = None,
 ) -> tuple[int, int, int, Tier]:
     """Dibuja el layout completo de una vista.
 
@@ -158,8 +158,10 @@ def draw_frame(
 
     for i, row in enumerate(rows):
         attr = p_texto
-        if row_attrs is not None and i < len(row_attrs) and row_attrs[i] is not None:
-            attr = row_attrs[i]
+        if row_attrs is not None and i < len(row_attrs):
+            ra = row_attrs[i]
+            if ra is not None:
+                attr = ra
         painter.centered(content_y0 + i, sx, box_w, row, attr)
 
     for j, hline in enumerate(helper_lines):
