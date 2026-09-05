@@ -165,9 +165,9 @@ class AlarmsController:
     ) -> ActionResult:
         if key == ord("a"):
             return self._new_alarm(model, es)
-        if key == curses.KEY_DOWN:
+        if key in (curses.KEY_DOWN, ord("j")):
             return self._nav(model, 1)
-        if key == curses.KEY_UP:
+        if key in (curses.KEY_UP, ord("k")):
             return self._nav(model, -1)
         if key == ord("J"):
             return self._reorder(model, 1)

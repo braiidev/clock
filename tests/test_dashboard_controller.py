@@ -57,6 +57,23 @@ def test_down_navigates():
     assert snap.selected_idx == 1
 
 
+def test_j_navigates_down():
+    c = DashboardController()
+    timers = [{"name": "T1", "remaining": 60}, {"name": "T2", "remaining": 60}]
+    snap = _snap(active_timers=timers)
+    c.handle(snap, ord("j"), _ctx())
+    assert snap.selected_idx == 1
+
+
+def test_k_navigates_up():
+    c = DashboardController()
+    timers = [{"name": "T1", "remaining": 60}, {"name": "T2", "remaining": 60}]
+    snap = _snap(active_timers=timers)
+    snap.selected_idx = 1
+    c.handle(snap, ord("k"), _ctx())
+    assert snap.selected_idx == 0
+
+
 def test_up_navigates():
     c = DashboardController()
     timers = [{"name": "T1", "remaining": 60}, {"name": "T2", "remaining": 60}]

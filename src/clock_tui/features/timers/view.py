@@ -38,7 +38,7 @@ def render(
     rows = _build_rows(model)
     helper = (
         [
-            "\u2191\u2193:nav  J/K:orden  a:nuevo  e:editar  d:borrar",
+            "\u2191\u2193 jk:nav  J/K:orden  a:nuevo  e:editar  d:borrar",
             "Tab:campo  \u2190\u2192:valor  Space:\u25b6/\u25c9\u25c9  r:reset",
         ]
         if mostrar_helpers

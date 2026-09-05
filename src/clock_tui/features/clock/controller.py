@@ -117,10 +117,10 @@ class ClockController:
             return self._nav_section(model)
         if key == curses.KEY_UP:
             return self._nav_section(model)
-        if key == curses.KEY_RIGHT and model.wc_list:
+        if key in (curses.KEY_RIGHT, ord("j")) and model.wc_list:
             model.wc_idx = (model.wc_idx + 1) % len(model.wc_list)
             return ActionResult()
-        if key == curses.KEY_LEFT and model.wc_list:
+        if key in (curses.KEY_LEFT, ord("k")) and model.wc_list:
             model.wc_idx = (model.wc_idx - 1) % len(model.wc_list)
             return ActionResult()
         if key == ord("a"):

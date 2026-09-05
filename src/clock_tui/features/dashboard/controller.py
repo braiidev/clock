@@ -31,12 +31,12 @@ class DashboardController:
             return ActionResult()
         if key == ord("u"):
             return ActionResult(refresh_weather=True)
-        if key == curses.KEY_DOWN:
+        if key in (curses.KEY_DOWN, ord("j")):
             activities = snap.activities
             if snap.selected_idx < len(activities) - 1:
                 snap.selected_idx += 1
             return ActionResult()
-        if key == curses.KEY_UP:
+        if key in (curses.KEY_UP, ord("k")):
             if snap.selected_idx > 0:
                 snap.selected_idx -= 1
             return ActionResult()

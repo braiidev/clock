@@ -49,7 +49,7 @@ def render(
             rows.append(f"{sel} {act.label}")
 
     helper = (
-        ["\u2191\u2193:navegar  Enter:ir a vista  u:refresh clima"]
+        ["\u2191\u2193 jk:navegar  Enter:ir a vista  u:refresh clima"]
         if mostrar_helpers
         else []
     )

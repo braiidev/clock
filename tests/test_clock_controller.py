@@ -25,6 +25,21 @@ def test_right_navigates_wc():
     assert m.wc_idx == 1
 
 
+def test_j_navigates_wc_next():
+    c = ClockController()
+    m = _model(3)
+    c.handle(m, ord("j"), _ctx())
+    assert m.wc_idx == 1
+
+
+def test_k_navigates_wc_prev():
+    c = ClockController()
+    m = _model(3)
+    m.wc_idx = 1
+    c.handle(m, ord("k"), _ctx())
+    assert m.wc_idx == 0
+
+
 def test_right_wraps():
     c = ClockController()
     m = _model(3)

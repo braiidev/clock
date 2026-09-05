@@ -40,6 +40,21 @@ def test_down():
     assert m.selected_idx == 1
 
 
+def test_j_navigates_down():
+    c = AlarmsController()
+    m = _model()
+    c.handle(m, ord("j"), _ctx())
+    assert m.selected_idx == 1
+
+
+def test_k_navigates_up():
+    c = AlarmsController()
+    m = _model()
+    m.selected_idx = 1
+    c.handle(m, ord("k"), _ctx())
+    assert m.selected_idx == 0
+
+
 def test_up_wraps():
     c = AlarmsController()
     m = _model()

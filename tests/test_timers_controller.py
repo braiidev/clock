@@ -25,6 +25,21 @@ def test_down_wraps():
     assert m.selected_idx == 1
 
 
+def test_j_navigates_down():
+    c = TimersController()
+    m = _model(3)
+    c.handle(m, ord("j"), _ctx())
+    assert m.selected_idx == 1
+
+
+def test_k_navigates_up():
+    c = TimersController()
+    m = _model(3)
+    m.selected_idx = 1
+    c.handle(m, ord("k"), _ctx())
+    assert m.selected_idx == 0
+
+
 def test_down_wraps_to_start():
     c = TimersController()
     m = _model(3)

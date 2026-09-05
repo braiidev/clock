@@ -84,9 +84,9 @@ class ClockApp:
         0: [
             "Vista de solo lectura: resumen de todo lo activo. Enter:ir a la fila, u:actualizar clima"
         ],
-        1: ["↑↓:sección  ←→:alternar WC  J/K:orden  n:+WC  e:editar  d:borrar  u:clima"],
-        2: ["n:nueva  ↑↓:nav  Space:on/off  e:editar  d:borrar"],
-        3: ["↑↓:fila  Tab:cicla  ←→:valor  Space:play/pause  R:reset"],
+        1: ["←→ jk:alternar WC  J/K:orden  n:+WC  e:editar  d:borrar  u:clima"],
+        2: ["n:nueva  ↑↓ jk:nav  J/K:orden  Space:on/off  e:editar  d:borrar"],
+        3: ["↑↓ jk:fila  Tab:cicla  ←→:valor  Space:play/pause  R:reset"],
         4: ["n:nuevo  ↑↓:nav  Tab:campo  ←→:valor  Space:play/pause  R:reset"],
         5: ["Space:play/pause  Tab:marcar lap  d:borrar última  R:reset"],
         6: ["←→:categoría  ↑↓:nav  Enter/Space:cambiar  Esc:cancelar edición"],
