@@ -15,6 +15,14 @@ def test_build_rows_ventana_chica_mantiene_seleccion():
     assert rows[1].startswith("\u25ba") and "A7" in rows[1]
 
 
+def test_build_rows_usa_la_capacidad_completa():
+    from clock_tui.features.alarms import view as a_view
+
+    m = AlarmsModel(alarms=[Alarm(nombre=f"A{i}", hora=8, minutos=i) for i in range(8)])
+    rows = a_view._build_rows(m, {}, 30)
+    assert len(rows) == 8  # sin tope _MAX_VISIBLE (6): usa toda la altura
+
+
 def test_render_does_not_mutate_model():
     m = AlarmsModel(
         alarms=[

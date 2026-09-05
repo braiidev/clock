@@ -12,8 +12,6 @@ from clock_tui.ui.frame import content_capacity, draw_frame, scroll_window
 
 from .model import TABS, ConfigModel
 
-_MAX_VISIBLE = 10
-
 
 def render(
     stdscr: Any,
@@ -57,7 +55,7 @@ def render(
     if n == 0:
         rows.append("(sin opciones en esta categoria)")
     else:
-        effective = min(_MAX_VISIBLE, max(1, cap - fixed))
+        effective = max(1, cap - fixed)
         model.scroll_offset = scroll_window(
             model.selected_idx, n, effective, model.scroll_offset
         )

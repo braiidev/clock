@@ -99,9 +99,7 @@ def _build_wc_rows(
         return []
     rows: list[str] = []
     n = len(model.wc_list)
-    effective = min(
-        _WC_MAX_VISIBLE, capacity if capacity is not None else _WC_MAX_VISIBLE
-    )
+    effective = capacity if capacity is not None else _WC_MAX_VISIBLE
     model.wc_scroll = scroll_window(model.wc_idx, n, effective, model.wc_scroll)
     for i in range(min(effective, n - model.wc_scroll)):
         i_abs = model.wc_scroll + i

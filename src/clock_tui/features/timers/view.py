@@ -103,7 +103,7 @@ def _render_confirm(
 def _build_rows(model: TimersModel, capacity: int | None = None) -> list[str]:
     timers = model.timers
     total = len(timers)
-    effective = min(_MAX_VISIBLE, capacity if capacity is not None else _MAX_VISIBLE)
+    effective = capacity if capacity is not None else _MAX_VISIBLE
     model.scroll_offset = scroll_window(
         model.selected_idx, total, effective, model.scroll_offset
     )

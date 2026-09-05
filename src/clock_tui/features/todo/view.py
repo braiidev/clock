@@ -12,7 +12,7 @@ from typing import Any
 from clock_tui.core.recurrence import DIAS_ABBR
 from clock_tui.ui.frame import content_capacity, draw_frame, scroll_window
 
-from .model import TodoModel, _MAX_VISIBLE
+from .model import TodoModel
 
 
 def render(
@@ -76,7 +76,7 @@ def _render_list(
             rows[:] = []  # muy apretado: solo items
             fixed = 0
     if total:
-        effective = min(_MAX_VISIBLE, max(1, cap - fixed))
+        effective = max(1, cap - fixed)
         model.scroll_offset = scroll_window(
             model.selected_idx, total, effective, model.scroll_offset
         )

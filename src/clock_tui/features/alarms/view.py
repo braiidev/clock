@@ -139,7 +139,7 @@ def _build_rows(
 ) -> list[str]:
     alarms = model.alarms
     total = len(alarms)
-    effective = min(_MAX_VISIBLE, capacity if capacity is not None else _MAX_VISIBLE)
+    effective = capacity if capacity is not None else _MAX_VISIBLE
     offset = model.scroll_offset
     rows: list[str] = []
     row_attrs: list[int | None] = []
