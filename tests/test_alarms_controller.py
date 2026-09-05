@@ -125,6 +125,46 @@ def test_confirm_delete_no():
     assert es["confirm_delete"] is False
 
 
+# ── Reorden ──
+
+
+def test_J_reorder_down():
+    c = AlarmsController()
+    m = _model(3)
+    r = c.handle(m, ord("J"), _ctx(), _es())
+    assert m.alarms[0].nombre == "A1"
+    assert m.alarms[1].nombre == "A0"
+    assert m.selected_idx == 1
+    assert r.needs_save is True
+
+
+def test_J_no_move_at_end():
+    c = AlarmsController()
+    m = _model(2)
+    m.selected_idx = 1
+    c.handle(m, ord("J"), _ctx(), _es())
+    assert m.alarms[1].nombre == "A1"
+    assert m.selected_idx == 1
+
+
+def test_K_reorder_up():
+    c = AlarmsController()
+    m = _model(3)
+    m.selected_idx = 1
+    c.handle(m, ord("K"), _ctx(), _es())
+    assert m.alarms[0].nombre == "A1"
+    assert m.alarms[1].nombre == "A0"
+    assert m.selected_idx == 0
+
+
+def test_K_no_move_at_start():
+    c = AlarmsController()
+    m = _model(3)
+    c.handle(m, ord("K"), _ctx(), _es())
+    assert m.alarms[0].nombre == "A0"
+    assert m.selected_idx == 0
+
+
 # ── Edit mode ──
 
 

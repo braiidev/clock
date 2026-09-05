@@ -144,6 +144,46 @@ def test_delete_clamps_idx():
     assert m.selected_idx == 1
 
 
+# ── Reorden ──
+
+
+def test_J_reorder_down():
+    c = TimersController()
+    m = _model(3)
+    r = c.handle(m, ord("J"), _ctx())
+    assert m.timers[0].name == "T1"
+    assert m.timers[1].name == "T0"
+    assert m.selected_idx == 1
+    assert r.needs_save is True
+
+
+def test_J_no_move_at_end():
+    c = TimersController()
+    m = _model(2)
+    m.selected_idx = 1
+    c.handle(m, ord("J"), _ctx())
+    assert m.timers[1].name == "T1"
+    assert m.selected_idx == 1
+
+
+def test_K_reorder_up():
+    c = TimersController()
+    m = _model(3)
+    m.selected_idx = 1
+    c.handle(m, ord("K"), _ctx())
+    assert m.timers[0].name == "T1"
+    assert m.timers[1].name == "T0"
+    assert m.selected_idx == 0
+
+
+def test_K_no_move_at_start():
+    c = TimersController()
+    m = _model(3)
+    c.handle(m, ord("K"), _ctx())
+    assert m.timers[0].name == "T0"
+    assert m.selected_idx == 0
+
+
 # ── Edit name ──
 
 

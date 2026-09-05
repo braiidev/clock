@@ -169,6 +169,10 @@ class AlarmsController:
             return self._nav(model, 1)
         if key == curses.KEY_UP:
             return self._nav(model, -1)
+        if key == ord("J"):
+            return self._reorder(model, 1)
+        if key == ord("K"):
+            return self._reorder(model, -1)
         if key == ord(" "):
             return self._toggle(model)
         if key == ord("d"):
@@ -194,6 +198,18 @@ class AlarmsController:
         model.selected_idx = (model.selected_idx + delta) % len(model.alarms)
         model._clamp_scroll()
         return ActionResult()
+
+    def _reorder(self, model: AlarmsModel, delta: int) -> ActionResult:
+        if not model.alarms:
+            return ActionResult()
+        idx = model.selected_idx
+        nxt = idx + delta
+        if nxt < 0 or nxt >= len(model.alarms):
+            return ActionResult()
+        model.swap(idx, nxt)
+        model.selected_idx = nxt
+        model._clamp_scroll()
+        return ActionResult(needs_save=True)
 
     def _toggle(self, model: AlarmsModel) -> ActionResult:
         if not model.alarms:

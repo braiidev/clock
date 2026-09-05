@@ -260,3 +260,43 @@ def test_confirm_delete_no():
     c.handle(m, ord("x"), _ctx())
     assert len(m.wc_list) == 2
     assert m.confirm_delete is False
+
+
+# ── Reorden de world clocks ──
+
+
+def test_J_reorder_wc_down():
+    c = ClockController()
+    m = _model(3)
+    r = c.handle(m, ord("J"), _ctx())
+    assert m.wc_list[0].apodo == "W1"
+    assert m.wc_list[1].apodo == "W0"
+    assert m.wc_idx == 1
+    assert r.needs_save is True
+
+
+def test_J_no_move_wc_at_end():
+    c = ClockController()
+    m = _model(2)
+    m.wc_idx = 1
+    c.handle(m, ord("J"), _ctx())
+    assert m.wc_list[1].apodo == "W1"
+    assert m.wc_idx == 1
+
+
+def test_K_reorder_wc_up():
+    c = ClockController()
+    m = _model(3)
+    m.wc_idx = 1
+    c.handle(m, ord("K"), _ctx())
+    assert m.wc_list[0].apodo == "W1"
+    assert m.wc_list[1].apodo == "W0"
+    assert m.wc_idx == 0
+
+
+def test_K_no_move_wc_at_start():
+    c = ClockController()
+    m = _model(3)
+    c.handle(m, ord("K"), _ctx())
+    assert m.wc_list[0].apodo == "W0"
+    assert m.wc_idx == 0

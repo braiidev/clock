@@ -38,7 +38,7 @@ def render(
 
     rows = _build_rows(model, pairs)
     helper = (
-        ["a:nueva  \u2191\u2193:nav  Space:on/off  e:editar  d:borrar"]
+        ["a:nueva  \u2191\u2193:nav  J/K:orden  Space:on/off  e:editar  d:borrar"]
         if mostrar_helpers
         else []
     )

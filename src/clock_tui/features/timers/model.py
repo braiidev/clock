@@ -84,3 +84,6 @@ class TimersModel:
             self.scroll_offset = self.selected_idx
         elif self.selected_idx >= self.scroll_offset + _MAX_VISIBLE:
             self.scroll_offset = self.selected_idx - _MAX_VISIBLE + 1
+
+    def swap(self, a: int, b: int) -> None:
+        self.timers[a], self.timers[b] = self.timers[b], self.timers[a]

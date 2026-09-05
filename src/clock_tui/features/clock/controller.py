@@ -109,6 +109,10 @@ class ClockController:
     # ── Normal mode ──
 
     def _handle_normal(self, model: ClockModel, key: int) -> ActionResult:
+        if key == ord("J"):
+            return self._reorder(model, 1)
+        if key == ord("K"):
+            return self._reorder(model, -1)
         if key == curses.KEY_DOWN:
             return self._nav_section(model)
         if key == curses.KEY_UP:
@@ -135,3 +139,14 @@ class ClockController:
             return ActionResult()
         model.wc_idx = model.wc_idx % len(model.wc_list)
         return ActionResult()
+
+    def _reorder(self, model: ClockModel, delta: int) -> ActionResult:
+        if not model.wc_list:
+            return ActionResult()
+        idx = model.wc_idx
+        nxt = idx + delta
+        if nxt < 0 or nxt >= len(model.wc_list):
+            return ActionResult()
+        model.wc_list[idx], model.wc_list[nxt] = model.wc_list[nxt], model.wc_list[idx]
+        model.wc_idx = nxt
+        return ActionResult(needs_save=True)
