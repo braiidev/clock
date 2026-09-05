@@ -67,6 +67,24 @@ def test_draw_activity_tiny():
     draw_activity(_Scr(3, 5), [("Alarmas", ["◷ A 06:00"])], 8)
 
 
+def test_draw_activity_desborde_muestra_tail():
+    items = [f"tarea {i} que no alcanzo a ver arriba" for i in range(20)]
+
+    class Rec(_Scr):
+        def __init__(self, h: int = 8, w: int = 50) -> None:
+            super().__init__(h, w)
+            self.textos: list[str] = []
+
+        def addstr(self, *a, **k) -> None:
+            self.textos.append(str(a[2]) if len(a) > 2 else "")
+
+    scr = Rec()
+    draw_activity(scr, [("Tareas", items)], 8)
+
+    assert any("tarea 18" in t or "tarea 19" in t for t in scr.textos)
+    assert not any(t.startswith("tarea 0") for t in scr.textos)
+
+
 def test_draw_log_viewer_empty():
     assert draw_log_viewer(_Scr(24, 80), [], 0, 0, 8) == 0
 

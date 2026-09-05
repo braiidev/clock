@@ -100,6 +100,7 @@ class ClockApp:
         self.stdscr = stdscr
         self.router = Router()
         self._dash_sel = 0
+        self._dash_scroll = 0
 
         # Servicio de clima (thread en background).
         self.weather = weather_service.WeatherService(
@@ -354,6 +355,7 @@ class ClockApp:
 
     def _handle_jump(self, view: int, idx: int) -> None:
         self._dash_sel = 0
+        self._dash_scroll = 0
         self.router.goto_view(view)
         if view == VIEW_ALARMS and self.alarms.alarms:
             self.alarms.selected_idx = min(idx, len(self.alarms.alarms) - 1)
@@ -902,12 +904,13 @@ class ClockApp:
         if view == VIEW_DASHBOARD:
             from clock_tui.features.dashboard import view as d_view
 
-            d_view.render(
+            self._dash_scroll = d_view.render(
                 self.stdscr,
                 self._build_dashboard_snapshot(selected_idx=self._dash_sel),
                 theme={},
                 pairs=pairs,
                 config=cfg,
+                scroll=self._dash_scroll,
             )
             return
         specs = {

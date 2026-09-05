@@ -3,6 +3,19 @@
 from clock_tui.features.alarms.model import Alarm, AlarmsModel
 
 
+def test_build_rows_ventana_chica_reserva_contador():
+    from clock_tui.features.alarms import view as a_view
+
+    m = AlarmsModel(
+        alarms=[Alarm(nombre=f"A{i}", hora=8, minutos=i) for i in range(8)],
+        selected_idx=7,
+    )
+    rows = a_view._build_rows(m, {}, 2)
+    assert len(rows) == 2  # 1 fila de ventana + contador
+    assert "de 8" in rows[-1]
+    assert rows[0].startswith("\u25ba") and "A7" in rows[0]
+
+
 def test_render_does_not_mutate_model():
     m = AlarmsModel(
         alarms=[

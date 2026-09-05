@@ -8,7 +8,7 @@ from __future__ import annotations
 import curses
 from typing import Any
 
-from clock_tui.ui.frame import draw_frame
+from clock_tui.ui.frame import content_capacity, draw_frame, scroll_window
 
 from .model import TimersModel, _MAX_VISIBLE
 
@@ -35,7 +35,6 @@ def render(
         _render_confirm(stdscr, model, pairs=pairs, mostrar_marco=mostrar_marco)
         return
 
-    rows = _build_rows(model)
     helper = (
         [
             "\u2191\u2193 jk:nav  J/K:orden  a:nuevo  e:editar  d:borrar",
@@ -44,6 +43,8 @@ def render(
         if mostrar_helpers
         else []
     )
+    sh, _ = stdscr.getmaxyx()
+    rows = _build_rows(model, content_capacity(sh, len(helper)))
 
     draw_frame(
         stdscr,
@@ -96,13 +97,19 @@ def _render_confirm(
     )
 
 
-def _build_rows(model: TimersModel) -> list[str]:
+def _build_rows(model: TimersModel, capacity: int | None = None) -> list[str]:
     timers = model.timers
     total = len(timers)
+    effective = min(_MAX_VISIBLE, capacity if capacity is not None else _MAX_VISIBLE)
+    if capacity is not None and total > effective:
+        effective = max(1, effective - 1)  # reserva la fila de contador
+    model.scroll_offset = scroll_window(
+        model.selected_idx, total, effective, model.scroll_offset
+    )
     offset = model.scroll_offset
     rows: list[str] = []
 
-    for i_rel in range(min(_MAX_VISIBLE, max(0, total - offset))):
+    for i_rel in range(min(effective, max(0, total - offset))):
         i_abs = i_rel + offset
         if i_abs >= total:
             break
@@ -123,8 +130,8 @@ def _build_rows(model: TimersModel) -> list[str]:
 
         rows.append(f"{sel}{run_icon} {t.name:14s}  {tstr}")
 
-    if total > _MAX_VISIBLE:
-        shown_end = min(offset + _MAX_VISIBLE, total)
+    if total > effective:
+        shown_end = min(offset + effective, total)
         rows.append(f"  ({offset + 1}\u2013{shown_end} de {total})")
 
     return rows

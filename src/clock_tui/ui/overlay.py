@@ -113,7 +113,9 @@ def draw_activity(
     draw_box(painter, sy, sx, box_h, box_w, "◈ Actividad", attr=marco_attr)
 
     content_w = box_w - 6
-    for i, (line, es_titulo) in enumerate(rows[: box_h - 4]):
+    cap = box_h - 4
+    body = rows if len(rows) <= cap else rows[-cap:]
+    for i, (line, es_titulo) in enumerate(body):
         a = titulo_attr if es_titulo else texto_attr
         painter.safe(sy + 2 + i, sx + 3, line[:content_w], a)
     hint = "o:cualquier tecla cierra"

@@ -9,7 +9,7 @@ import curses
 from typing import Any
 
 from clock_tui.core.recurrence import DIAS_ABBR, _repeat_days_str
-from clock_tui.ui.frame import draw_frame
+from clock_tui.ui.frame import content_capacity, draw_frame, scroll_window
 
 from .model import AlarmsModel, _MAX_VISIBLE
 
@@ -36,12 +36,13 @@ def render(
         _render_confirm(stdscr, model, es, pairs=pairs, mostrar_marco=mostrar_marco)
         return
 
-    rows = _build_rows(model, pairs)
     helper = (
         ["a:nueva  \u2191\u2193 jk:nav  J/K:orden  Space:on/off  e:editar  d:borrar"]
         if mostrar_helpers
         else []
     )
+    sh, _ = stdscr.getmaxyx()
+    rows = _build_rows(model, pairs, content_capacity(sh, len(helper)))
 
     draw_frame(
         stdscr,
@@ -130,9 +131,14 @@ def _render_confirm(
     )
 
 
-def _build_rows(model: AlarmsModel, pairs: dict[str, int]) -> list[str]:
+def _build_rows(
+    model: AlarmsModel, pairs: dict[str, int], capacity: int | None = None
+) -> list[str]:
     alarms = model.alarms
     total = len(alarms)
+    effective = min(_MAX_VISIBLE, capacity if capacity is not None else _MAX_VISIBLE)
+    if capacity is not None and total > effective:
+        effective = max(1, effective - 1)  # reserva la fila de contador
     offset = model.scroll_offset
     rows: list[str] = []
     row_attrs: list[int | None] = []
@@ -144,14 +150,10 @@ def _build_rows(model: AlarmsModel, pairs: dict[str, int]) -> list[str]:
     p_texto = pairs.get("texto", 0)
     p_helpers = pairs.get("helpers", 0)
 
-    if model.selected_idx < offset:
-        model.scroll_offset = model.selected_idx
-        offset = model.scroll_offset
-    elif model.selected_idx >= offset + _MAX_VISIBLE:
-        model.scroll_offset = model.selected_idx - _MAX_VISIBLE + 1
-        offset = model.scroll_offset
+    model.scroll_offset = scroll_window(model.selected_idx, total, effective, offset)
+    offset = model.scroll_offset
 
-    for i_rel in range(min(_MAX_VISIBLE, max(0, total - offset))):
+    for i_rel in range(min(effective, max(0, total - offset))):
         i_abs = i_rel + offset
         if i_abs >= total:
             break
@@ -172,8 +174,8 @@ def _build_rows(model: AlarmsModel, pairs: dict[str, int]) -> list[str]:
         else:
             row_attrs.append(None)
 
-    if total > _MAX_VISIBLE:
-        shown_end = min(offset + _MAX_VISIBLE, total)
+    if total > effective:
+        shown_end = min(offset + effective, total)
         rows.append(f"  ({offset + 1}\u2013{shown_end} de {total})")
         row_attrs.append(p_helpers | curses.A_DIM)
 

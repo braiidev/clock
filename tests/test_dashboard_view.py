@@ -92,3 +92,51 @@ def test_render_clima_usa_pair_clima():
 
     assert captured["rows"][1] == "UV 23° Soleado"
     assert captured["attrs"] == [None, 31]
+
+
+def test_render_ventana_scroll_seleccion_ultima_visible():
+    from clock_tui.features.dashboard import view as d_view
+
+    timers = [{"name": f"T{i}", "remaining": i * 60, "idx": i} for i in range(5)]
+    snap = DashboardSnapshot(
+        now=datetime.datetime(2025, 6, 16, 14, 5, 9),
+        active_timers=timers,
+        total_tasks=0,
+        done_tasks=0,
+        selected_idx=3,
+    )
+    captured: dict = {}
+
+    class FakeStdscr:
+        def getmaxyx(self):
+            return 8, 60
+
+        def erase(self):
+            pass
+
+        def addstr(self, *a, **kw):
+            pass
+
+        def refresh(self):
+            pass
+
+    def fake_draw_frame(stdscr, title, rows, row_attrs=None, **kw):
+        captured["rows"] = list(rows)
+
+    orig = d_view.draw_frame
+    d_view.draw_frame = fake_draw_frame  # type: ignore[assignment]
+    try:
+        offset = d_view.render(
+            FakeStdscr(),
+            snap,
+            theme={},
+            pairs={"marco": 1, "texto": 6, "helpers": 2},
+            config={"mostrar_marco": True, "mostrar_helpers": True},
+        )
+    finally:
+        d_view.draw_frame = orig
+
+    assert offset > 0  # la selección está fuera de la ventana inicial
+    assert any(r.startswith("\u25ba") for r in captured["rows"])
+    assert any("de 4" in r for r in captured["rows"])
+    assert all("T1" not in r for r in captured["rows"])  # las primeras salen

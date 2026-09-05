@@ -1,11 +1,11 @@
 # TODO
 
 ## Doing
-- [ ] v1.2.17: Scroll/truncate normalizado por altura (frame + todos los views + dashboard + overlay <o>) - v0.45
 
 ## Next
 
 ## Done
+- [x] v1.2.17: Scroll/truncate normalizado por altura (frame + todos los views + dashboard + overlay <o>) - v0.45
 - [x] v1.2.16: Nav configurable (mostrar_nav) y oculto en mínima si no cabe - v0.44
 - [x] v1.2.15: Ayuda — cada vista/?: coherencia con su controller (a ≠ n, r no R, crono ≠ to-do) - v0.43
 - [x] v1.2.14: Reloj — WC muestran diferencia local-wc - v0.41

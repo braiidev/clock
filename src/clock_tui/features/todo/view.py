@@ -10,9 +10,9 @@ import datetime
 from typing import Any
 
 from clock_tui.core.recurrence import DIAS_ABBR
-from clock_tui.ui.frame import draw_frame
+from clock_tui.ui.frame import content_capacity, draw_frame, scroll_window
 
-from .model import TodoModel
+from .model import TodoModel, _MAX_VISIBLE
 
 
 def render(
@@ -57,20 +57,6 @@ def _render_list(
     now_str = datetime.datetime.now().strftime("%H:%M:%S")
     rows = [now_str, ""]
 
-    total = model.count
-    if total:
-        start, end = model.visible_range()
-        visible = model.todos[start:end]
-        for i_rel, t in enumerate(visible):
-            i_abs = i_rel + start
-            sel = "\u25ba" if i_abs == model.selected_idx else " "
-            rows.append(f"{sel} {model.item_display(t)}")
-        if total > 8:
-            shown_end = min(start + 8, total)
-            rows.append(f"  ({start + 1}\u2013{shown_end} de {total})")
-    else:
-        rows.append("Presion\u00e1 <a> para crear")
-
     helper = (
         [
             "a:nuevo  \u2191\u2193 jk:nav  \u2190\u2192/JK:mover  Space:\u2714/\u25cb  e:editar  d:borrar  x:alarma"
@@ -78,6 +64,28 @@ def _render_list(
         if mostrar_helpers
         else []
     )
+
+    total = model.count
+    if total:
+        sh, _ = stdscr.getmaxyx()
+        effective = min(_MAX_VISIBLE, content_capacity(sh, len(helper)))
+        if total > effective:
+            effective = max(1, effective - 1)  # reserva la fila de contador
+        model.scroll_offset = scroll_window(
+            model.selected_idx, total, effective, model.scroll_offset
+        )
+        start = model.scroll_offset
+        end = min(start + effective, total)
+        visible = model.todos[start:end]
+        for i_rel, t in enumerate(visible):
+            i_abs = i_rel + start
+            sel = "\u25ba" if i_abs == model.selected_idx else " "
+            rows.append(f"{sel} {model.item_display(t)}")
+        if total > effective:
+            shown_end = min(start + effective, total)
+            rows.append(f"  ({start + 1}\u2013{shown_end} de {total})")
+    else:
+        rows.append("Presion\u00e1 <a> para crear")
 
     draw_frame(
         stdscr,

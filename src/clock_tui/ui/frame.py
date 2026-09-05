@@ -53,6 +53,32 @@ def truncate_ellipsis(text: str, max_width: int) -> str:
     return out + "…"
 
 
+def content_capacity(sh: int, helper_count: int = 0) -> int:
+    """Filas de contenido que entran dentro de la caja en pantalla.
+
+    Deja la última fila del terminal libre (footer) y reserva el marco.
+    Es el mismo cálculo que usa `draw_frame` para acotar la caja.
+    """
+    helpers_below = (helper_count + 1) if helper_count else 0
+    box_h_cap = max(4, sh - 2 - helpers_below)
+    return max(1, box_h_cap - 4)
+
+
+def scroll_window(selected: int, total: int, capacity: int, current: int = 0) -> int:
+    """Offset de ventana que mantiene `selected` visible en [offset, offset+capacity).
+
+    Incremental: conserva `current` salvo que la selección salga de la
+    ventana (patrón normalizado para todos los views).
+    """
+    if total <= 0 or capacity <= 0 or total <= capacity:
+        return 0
+    if selected < current:
+        return max(0, selected)
+    if selected >= current + capacity:
+        return min(selected - capacity + 1, total - capacity)
+    return min(current, total - capacity)
+
+
 class Painter:
     """Helper de dibujo seguro sobre un stdscr."""
 
@@ -138,14 +164,15 @@ def draw_frame(
         painter.safe(0, wx, weather_line[: sw - 1], p_clima)
 
     helper_lines = list(helper_lines or [])
+    n_help = len(helper_lines)
     all_widths = (
         [display_width(r) for r in rows]
         + [display_width(h) for h in helper_lines]
         + [display_width(title) + 8, 44]
     )
     box_w = min(max(all_widths) + 6, sw - 2)
-    box_h = len(rows) + 4
-    total_h = box_h + (len(helper_lines) + 1 if helper_lines else 0)
+    box_h = min(len(rows) + 4, content_capacity(sh, n_help) + 4)
+    total_h = box_h + (n_help + 1 if n_help else 0)
     sy = max(1, (sh - 1 - total_h) // 2)
     sx = max(0, (sw - box_w) // 2)
 
@@ -156,13 +183,16 @@ def draw_frame(
         painter.centered(sy, sx, box_w, f"[ {title} ]", p_marco | curses.A_BOLD)
         content_y0 = sy + 2
 
-    for i, row in enumerate(rows):
+    content_w = max(1, box_w - 4)
+    for i, row in enumerate(rows[: box_h - 4]):
         attr = p_texto
         if row_attrs is not None and i < len(row_attrs):
             ra = row_attrs[i]
             if ra is not None:
                 attr = ra
-        painter.centered(content_y0 + i, sx, box_w, row, attr)
+        painter.centered(
+            content_y0 + i, sx, box_w, truncate_ellipsis(row, content_w), attr
+        )
 
     for j, hline in enumerate(helper_lines):
         hy = sy + box_h + j + 1

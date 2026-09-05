@@ -9,7 +9,7 @@ from __future__ import annotations
 import curses
 from typing import Any
 
-from clock_tui.ui.frame import draw_frame
+from clock_tui.ui.frame import content_capacity, draw_frame, scroll_window
 
 from .model import ClockModel, _WC_MAX_VISIBLE
 
@@ -64,15 +64,19 @@ def render(
 
     rows = [date_line]
     if config.get("wc_mostrar", "ver") != "no ver":
-        wc_rows = _build_wc_rows(model, pairs)
+        helper = (
+            [
+                "\u2191\u2193 \u2190\u2192 jk:nav WC  J/K:orden  a:+WC  e:editar  d:borrar"
+            ]
+            if mostrar_helpers
+            else []
+        )
+        sh, _ = stdscr.getmaxyx()
+        wc_rows = _build_wc_rows(model, pairs, content_capacity(sh, len(helper)) - 1)
         if wc_rows:
             rows.extend(wc_rows)
-
-    helper = (
-        ["\u2191\u2193 \u2190\u2192 jk:nav WC  J/K:orden  a:+WC  e:editar  d:borrar"]
-        if mostrar_helpers
-        else []
-    )
+    else:
+        helper = []
 
     draw_frame(
         stdscr,
@@ -84,12 +88,20 @@ def render(
     )
 
 
-def _build_wc_rows(model: ClockModel, pairs: dict[str, int]) -> list[str]:
+def _build_wc_rows(
+    model: ClockModel, pairs: dict[str, int], capacity: int | None = None
+) -> list[str]:
     if not model.wc_list:
         return []
     rows: list[str] = []
     n = len(model.wc_list)
-    for i in range(min(_WC_MAX_VISIBLE, n - model.wc_scroll)):
+    effective = min(
+        _WC_MAX_VISIBLE, capacity if capacity is not None else _WC_MAX_VISIBLE
+    )
+    if capacity is not None and n > effective:
+        effective = max(1, effective - 1)  # reserva la fila de contador
+    model.wc_scroll = scroll_window(model.wc_idx, n, effective, model.wc_scroll)
+    for i in range(min(effective, n - model.wc_scroll)):
         i_abs = model.wc_scroll + i
         wc = model.wc_list[i_abs]
         hhmm = model.wc_time_str(wc.zona)
@@ -97,8 +109,8 @@ def _build_wc_rows(model: ClockModel, pairs: dict[str, int]) -> list[str]:
         diff = model.wc_local_diff_str(wc.zona)
         extra = f"{diff} " if diff else ""
         rows.append(f"{sel} {wc.apodo} {extra}{hhmm}")
-    if n > _WC_MAX_VISIBLE:
-        shown_end = min(model.wc_scroll + _WC_MAX_VISIBLE, n)
+    if n > effective:
+        shown_end = min(model.wc_scroll + effective, n)
         rows.append(f"  ({model.wc_scroll + 1}\u2013{shown_end} de {n})")
     return rows
 
@@ -114,8 +126,22 @@ def _render_picker(
     titulo = (
         "Editar reloj mundial" if p.edit_target is not None else "Nuevo reloj mundial"
     )
+
+    if p.filter_active:
+        helper = ["Escribiendo filtro  Enter:elegir  Esc:salir del filtro"]
+    else:
+        helper = ["\u2191\u2193:nav  f:filtro  Enter:elegir  Esc:cancelar"]
+
+    sh, _ = stdscr.getmaxyx()
+    extras = (1 if p.zones else 0) + (1 if p.filter_active else 0)
+    effective = min(
+        _PICKER_MAX_VISIBLE,
+        max(1, content_capacity(sh, len(helper)) - extras),
+    )
+    p.scroll = scroll_window(p.idx, len(p.zones), effective, p.scroll)
+
     rows: list[str] = []
-    for i_rel in range(min(_PICKER_MAX_VISIBLE, max(0, len(p.zones) - p.scroll))):
+    for i_rel in range(min(effective, max(0, len(p.zones) - p.scroll))):
         i_abs = i_rel + p.scroll
         if i_abs >= len(p.zones):
             break
@@ -130,11 +156,6 @@ def _render_picker(
         rows.append(f"Filtro: {p.filter_text}_")
     if p.zones:
         rows.append(f"({p.idx + 1}/{len(p.zones)})")
-
-    if p.filter_active:
-        helper = ["Escribiendo filtro  Enter:elegir  Esc:salir del filtro"]
-    else:
-        helper = ["\u2191\u2193:nav  f:filtro  Enter:elegir  Esc:cancelar"]
 
     draw_frame(
         stdscr,

@@ -92,7 +92,8 @@ clock-tui/
 - Contenido centrado dentro del marco.
 - Helpers debajo del marco (si `mostrar_helpers`).
 - Actividad **bajo demanda** con la tecla global `o` (overlay de actividad); no hay badge permanente.
-- Footer con modo + tab bar expandido.
+- El contenido de tablas/selectores tiene **scroll por altura**: la selección siempre queda visible y el borde inferior nunca se pisa; si una fila excede el ancho se trunca con ellipsis (nunca corte silencioso). Dashboard, WC y counters también acotan su ventana.
+- Footer con modo + tab bar expandido (se oculta solo si no cabe o si `mostrar_nav` está apagado).
 - Listas con scroll e indicador `(1–6 de 12)`.
 - Texto que excede el ancho → ellipsis.
 - Sub-vistas se renderizan dentro del marco.
@@ -202,6 +203,7 @@ afecta a varias vistas.
 |---|---|---|---|---|
 | `mostrar_marco` | bool | global | Muestra/oculta el marco en todas las vistas | todas las vistas |
 | `mostrar_helpers` | bool | global | Muestra/oculta la línea de teclas de ayuda | todas las vistas |
+| `mostrar_nav` | bool | global | Muestra/oculta la barra de navegación inferior (se oculta sola si no cabe) | barra de navegación |
 | `tema` | choice | global | Paleta de colores | todas las vistas |
 | `custom_color_{marco,texto,clima,helpers,nav}` | choice | global (solo si tema=custom) | Colores del tema custom | todas las vistas |
 | `alarma_posponer_min` | choice | global | Minutos de posponer en el overlay de alerta | overlay de alerta |
@@ -364,7 +366,7 @@ Tabs por categoría + items configurables. Teclas: `←→` tab, `↑↓` nav, `
 ```
 
 Categorías:
-- **Apariencia:** Tema (clasico/mono/calido/alto_contraste/flatline/custom), colores custom (marco, texto, clima, helpers, nav), mostrar marco, mostrar helpers. *(globales)*
+- **Apariencia:** Tema (clasico/mono/calido/alto_contraste/flatline/custom), colores custom (marco, texto, clima, helpers, nav), mostrar marco, mostrar helpers, mostrar nav. *(globales)*
 - **Reloj:** Mostrar segundos, formato 24h, posponer alarma (min, afecta el overlay de alerta), mostrar WC, mostrar alarmas en el overlay de actividad. *(mostrar_segundos/formato_24h/wc_mostrar afectan a Reloj; posponer y alarmas_mostrar son globales — alarmas_mostrar también oculta la "Próxima alarma" del Dashboard)*
 - **Clima:** Mostrar clima, ubicación, intervalo auto-update, mostrar "hace N min", reintentos máx, espera entre reintentos. *(afecta solo al Dashboard)*
 - **Sonido:** Sonido ON/OFF, origen (default/custom), archivo default, archivo custom (browser). *(afecta el overlay de alerta)*
