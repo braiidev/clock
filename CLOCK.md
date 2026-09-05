@@ -538,10 +538,12 @@ Orden de features por complejidad: stopwatch (más simple, valida el patrón), t
 ## 12. Estado de validación (fases 5-6)
 
 Implementación completa del refactor, **milestone v1.0** + self-update **v1.1**
-+ overlay de actividad **v1.2**. Suite: `476` tests (pytest) · pyright 0 errores
-(v1.0) · black. Monolito original eliminado (`clock.py`).
++ overlay de actividad **v1.2**. Suite: `505` tests (pytest) · pyright 0 errores
+· black. Monolito original eliminado (`clock.py`).
 
 - **Batch de bugs v0.29–v0.36:** captura de teclas durante la edición (router `capture`), confirmación de borrado (`y/Y/s/S`), reorden con `J/K` (alarmas/timers/WCs), navegación `hjkl` en todas las vistas, próxima alarma del Dashboard calculada por **recurrencia real** (`_next_occurrence`), WCs del Reloj como filas con `►` + ventana de scroll, `wc_mostrar` y `alarmas_mostrar` funcionales (incluyen Dashboard), Config sin tab "Data" (acciones → Sistema) + selector `►` + tema **flatline**.
+
+- **Batch de bugs v0.37–v0.46:** navegación del Dashboard persistente (arrows y hjkl), `hjkl` espejo de flechas en editores/selectores, día de la ocurrencia en "Próxima alarma" (desambigua repeticiones 1d+), WCs muestran la diferencia local-wc (`BUE -3h`), ayuda coherente vista por vista (cada tecla verificada contra su controller), nav configurable (`mostrar_nav`) y oculto en mínima si no cabe, **scroll + truncate normalizados por altura** (selección siempre visible, marco inferior/footer intactos, overlay `<o>` con tail), y **sonidos bundled** (`src/clock_tui/sounds/`) que install.sh y `--update` copian a `~/.config/clock/sounds/` sin pisar los del usuario (fallback bundled si la carpeta no existe).
 
 - **Flows e2e por dispatch** (test_app.py): edición completa de alarma (nombre→hora→días→guardar con `needs_save`), alta de timers/todo/clock-picker, ciclo de tema en Config (reinstala pairs), roundtrip `save_now→store→load`, render micro-tier.
 - **Overlays** (test_overlay.py): `draw_alert`/`draw_help`/`draw_log_viewer` en full y tamaños mínimos, scroll válido.
