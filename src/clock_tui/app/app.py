@@ -932,7 +932,9 @@ class ClockApp:
         _VIEWS[name].render(self.stdscr, model, theme={}, pairs=pairs, config=cfg)
 
     def _render_footer(self) -> None:
-        from clock_tui.ui.frame import Painter
+        if not self.config.get("mostrar_nav", True):
+            return
+        from clock_tui.ui.frame import Painter, display_width
 
         painter = Painter(self.stdscr)
         h, w = painter.size
@@ -940,7 +942,9 @@ class ClockApp:
         cur = self.router.view_index()
         tabs = " . ".join((f"{n}" if i == cur else n) for i, n in enumerate(names))
         footer = f"-- {self._clock_str()} --  {tabs}  q"
-        x = max(0, (w - len(footer)) // 2)
+        if display_width(footer) > w - 1:
+            return
+        x = max(0, (w - display_width(footer)) // 2)
         for ch_i, ch in enumerate(footer):
             if x + ch_i < w - 1:
                 painter.safe(h - 1, x + ch_i, ch, self._pairs["nav"])

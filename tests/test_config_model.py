@@ -16,7 +16,14 @@ def _model(tema="clasico", **kw) -> ConfigModel:
 
 def test_default_config_has_kis():
     cfg = default_config()
-    for k in ("mostrar_marco", "mostrar_helpers", "sonido", "tema", "world_clocks"):
+    for k in (
+        "mostrar_marco",
+        "mostrar_helpers",
+        "mostrar_nav",
+        "sonido",
+        "tema",
+        "world_clocks",
+    ):
         assert k in cfg
 
 

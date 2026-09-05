@@ -159,6 +159,48 @@ def test_help_por_vista_coherente_con_su_controller():
     assert "Tab:marcar" not in todo and "R:" not in todo
 
 
+class _RecStdscr(_FakeStdscr):
+    def __init__(self, h: int = 24, w: int = 80) -> None:
+        super().__init__(h, w)
+        self.calls: list[tuple[int, int, str, int]] = []
+
+    def addstr(self, *a: Any, **k: Any) -> None:
+        y, x, s = a[0], a[1], a[2]
+        attr = a[3] if len(a) > 3 else 0
+        self.calls.append((y, x, str(s), attr))
+
+    def erase(self) -> None:
+        pass
+
+
+def test_footer_oculto_si_no_cabe_o_config_off(fake_curses):
+    from clock_tui.app.app import ClockApp
+
+    app = ClockApp(_RecStdscr(24, 80))
+    app.config["sonido"] = False
+    app.weather.stop()
+
+    def row_texts() -> list[str]:
+        return [s for y, x, s, a in app.stdscr.calls if y == app.stdscr.h - 1]
+
+    # cabe → nav visible
+    app.stdscr = _RecStdscr(24, 80)
+    app._render_footer()
+    assert "Dash" in "".join(row_texts())
+    assert "Conf" in "".join(row_texts())
+
+    # angosto → nav oculto
+    app.stdscr = _RecStdscr(24, 45)
+    app._render_footer()
+    assert row_texts() == []
+
+    # config off → nav oculto aunque quepa
+    app.stdscr = _RecStdscr(24, 80)
+    app.config["mostrar_nav"] = False
+    app._render_footer()
+    assert row_texts() == []
+
+
 def test_dispatch_all_views_returns_actions(app):
     from clock_tui.app.router import (
         VIEW_ALARMS,

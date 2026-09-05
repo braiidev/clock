@@ -40,6 +40,7 @@ def default_config() -> dict[str, Any]:
     cfg: dict[str, Any] = {
         "mostrar_marco": True,
         "mostrar_helpers": True,
+        "mostrar_nav": True,
         "mostrar_segundos": True,
         "formato_24h": True,
         "sonido": True,
@@ -86,6 +87,7 @@ def config_items() -> list[ConfigItem]:
         ),
         ConfigItem("mostrar_marco", "Mostrar marco", "Apariencia", "bool"),
         ConfigItem("mostrar_helpers", "Mostrar ayuda (helpers)", "Apariencia", "bool"),
+        ConfigItem("mostrar_nav", "Mostrar barra de navegación", "Apariencia", "bool"),
         ConfigItem("mostrar_segundos", "Mostrar segundos", "Reloj", "bool"),
         ConfigItem("formato_24h", "Formato 24h", "Reloj", "bool"),
         ConfigItem(
