@@ -1,8 +1,13 @@
 # TODO
 
 ## Doing
+- [ ] v1.2.21: Docs tiers responsive 3 estados (micro/mini/full) por altura + aclaración micro MVP (D20) - v0.50
 
 ## Next
+- [ ] v1.2.22: Responsive 3 estados: micro h<3, full h≥8, mini en medio (size_tier + tests) - v0.51
+- [ ] v1.2.23: Micro vistas: config `micro_mostrar` (Todo/Fecha y hora/Solo hora/Solo clima) + draw_micro 2 líneas + app - v0.52
+- [ ] v1.2.24: Overlay <o> scrolleable con jk/flechas (router + draw_activity con ventana y contador) - v0.53
+- [ ] v1.2.25: Listas usan toda la altura: quitar caps _MAX_VISIBLE cuando hay capacity real - v0.54
 
 ## Done
 - [x] v1.2.20: Contador (n/N) en el borde inferior también en Dashboard (siempre, hasta con 1 ítem) y Config (scroll+contador nuevos) - v0.49

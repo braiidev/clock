@@ -18,7 +18,7 @@ entre la documentación previa. Es la única fuente de verdad;
 | D7 | **Panel de notas eliminado** (notas y tareas en la misma lista ToDo) |
 | D8 | Clima: **wttr.in** |
 | D9 | Dashboard `Enter` → saltar a vista: **sí** |
-| D10 | Responsive: **2 tiers** (micro / full), sin `minimum` |
+| D10 | Responsive: **3 estados** (micro / mini / full) **por altura**; mini y full **siempre con marcos**; el ancho no gatilla degradación |
 | D11 | Alarmas: **vista separada** (no dentro de Reloj) |
 | D12 | Persistencia: **`data.json` + version 7**, migración automática desde `clock_data.json` v6 |
 | D13 | Clima: **solo en el Dashboard** (no en la vista Reloj) |
@@ -28,6 +28,7 @@ entre la documentación previa. Es la única fuente de verdad;
 | D17 | `KEY_RESIZE` se maneja en el loop (`_on_resize`: clear+refresh) y cada `_render` relee `getmaxyx`; tier micro degrada sin marco |
 | D18 | Self-update: instalación desde clone git (`install.sh`, `curl|bash`, sin sudo) + actualización **por commits** (`git rev-list --count HEAD..origin/main`), inmune al defasaje entre contador de tasks (`v0.N`) y semver de producto (`v1.y.z`) |
 | D19 | Overlay de actividad `<o>`: **implementado** en v1.2 (D14 lo documentaba pero nunca se había codificado). Agrupa alarmas activas, timers activos, crono y tareas pendientes (por `orden`); `alarmas_mostrar` ahora lo controla ("no ver" oculta la sección). `wc_mostrar` **sí tiene efecto** (v1.2): "no ver" oculta la sección de WC en la vista Reloj; `alarmas_mostrar` además oculta la fila "Próxima alarma" del Dashboard |
+| D20 | Micro (h<3) = **solo MVP de Dashboard**: sin marco ni título, 1-2 líneas (hora/fecha/clima según `micro_mostrar`), sin actividades ni contenido de otras vistas; el banner de alerta sí se superpone. Mini (h≥3, sin helpers/footer) y full (h≥8, completo) son los estados **con marcos** |
 
 ---
 
@@ -56,7 +57,7 @@ clock-tui/
 │       │   ├── frame.py         # draw_box, draw_frame, centered, ellipsis, badge
 │       │   ├── overlay.py       # Alert modal, Help overlay, Log viewer
 │       │   ├── browser.py       # File browser (sonidos, restore)
-│       │   └── responsive.py    # size_tier (micro/full), scroll helpers
+│       │   └── responsive.py    # size_tier (micro/mini/full), scroll helpers
 │       └── features/
 │           ├── dashboard/       # model.py + controller.py + view.py
 │           ├── clock/           # model.py + controller.py + view.py + world_zones.py
@@ -77,26 +78,33 @@ clock-tui/
 
 ---
 
-## 2. Responsive: 2 tiers
+## 2. Responsive: 3 estados
 
-### Tier `micro` (w<40 AND h<5)
-- Sin marco.
-- Título de tab en `H=0` (alineado izquierda, `PAIR_MARCO`).
-- Contenido centrado; si excede el ancho, se trunca con ellipsis (`…`).
-- Footer `H=h-1` compacto: `[0-6 q]`.
-- Sin helpers, sin badge, sin clima.
-- Sin sub-vistas (editores, confirmaciones, pickers): se ignoran o muestran mensaje de 1 línea.
+Los estados se definen **solo por la altura** (`responsive.size_tier`); el ancho nunca
+gatilla degradación: si el contenido no cabe, se adapta/trunca, pero nunca se omite
+el marco en los estados vestidos.
 
-### Tier `full` (todo lo demás)
-- Marco con `draw_box` (si `mostrar_marco`).
-- Contenido centrado dentro del marco.
-- Helpers debajo del marco (si `mostrar_helpers`).
-- Actividad **bajo demanda** con la tecla global `o` (overlay de actividad); no hay badge permanente.
-- El contenido de tablas/selectores tiene **scroll por altura**: la selección siempre queda visible y el borde inferior nunca se pisa; si una fila excede el ancho se trunca con ellipsis (nunca corte silencioso). Dashboard, WC y counters también acotan su ventana.
-- Footer con modo + tab bar expandido (se oculta solo si no cabe o si `mostrar_nav` está apagado).
-- Listas con scroll e indicador `(1–6 de 12)`.
-- Texto que excede el ancho → ellipsis.
-- Sub-vistas se renderizan dentro del marco.
+### Estado `micro` (h < 3) — sin marcos
+- 1 ó 2 líneas, **sin marco ni título** (nada de box, nada de tab bar).
+- Muestra **solo la MVP del Dashboard**: hora / fecha / clima según `micro_mostrar`
+  (config, sección Reloj):
+  - `Todo` (default): línea 1 `Día Mes | HH:MM:SS`, línea 2 clima; en 1 sola fila
+    se resume en una línea `(V) 5 Sep | 14:32 | 23°C`.
+  - `Fecha y hora`: solo `Día Mes | HH:MM:SS`.
+  - `Solo hora`: solo la hora (comportamiento original).
+  - `Solo clima`: solo el clima (si no hay clima, cae a la hora).
+- **Sin actividades ni contenido de otras vistas**: sea cual sea la vista activa, micro
+  dibuja siempre la MVP.
+- Si hay una alerta activa → el **banner de alerta** se superpone (mismo modal que full).
+- Sin scroll: el texto se trunca con `…`.
+
+### Estados `mini` y `full` — con marcos
+- Ambos renderizan las vistas normales **con marco y título** (`draw_box` si
+  `mostrar_marco`): la diferencia es cuánto llena la caja y qué chrome se dibuja.
+- `mini` (3 ≤ h < 8 — valor inicial ajustable): la caja se ajusta a la pantalla,
+  contenido degradado, **sin helpers ni footer**. Las listas usan todo el alto que quede.
+- `full` (h ≥ 8): vista completa — helpers bajo el marco, footer con tab bar, clima en
+  la fila superior, listas con scroll e indicador `(n/N)` en el borde inferior.
 
 ### Ellipsis y scroll
 | Situación | Comportamiento |
@@ -115,7 +123,7 @@ clock-tui/
 ── NORMAL ── Dash · Reloj · Alarm · Timer · Crono · ToDo · Conf  q ──
 ```
 - Tab activa: `A_REVERSE` o `A_BOLD`.
-- `[` `]` ciclan (wrap-around). `0-6` acceso directo. Micro: `[0-6 q]`.
+- `[` `]` ciclan (wrap-around). `0-6` acceso directo. Micro: no hay tab bar ni footer.
 
 | Tecla | Tab | Título frame |
 |---|---|---|
@@ -555,7 +563,7 @@ Implementación completa del refactor, **milestone v1.0** + self-update **v1.1**
 - **Flows e2e por dispatch** (test_app.py): edición completa de alarma (nombre→hora→días→guardar con `needs_save`), alta de timers/todo/clock-picker, ciclo de tema en Config (reinstala pairs), roundtrip `save_now→store→load`, render micro-tier.
 - **Overlays** (test_overlay.py): `draw_alert`/`draw_help`/`draw_log_viewer` en full y tamaños mínimos, scroll válido.
 - **Pty real:** `clock-tui` navega las 7 vistas (`0-6`), toggle de help (`?`) y quit (`q`) con exit 0; sin entradas nuevas en `clock_error.log`.
-- **Resize:** `KEY_RESIZE` → `_on_resize()` (clear+refresh); `_render` relee `getmaxyx()` cada frame. Tier micro sin marco y footer compacto `[0-6 q]`.
+- **Resize:** `KEY_RESIZE` → `_on_resize()` (clear+refresh); `_render` relee `getmaxyx()` cada frame. Tier `micro` (h<3) sin marco ni footer: solo la MVP.
 
 ### Bug corregido en fase 6.1
 El `edit_state` de alarmas se creaba vacío en cada tecla (`es = edit_state or {}` descarta un dict vacío) → la edición no persistía. La app ahora es dueña de `self._alarm_edit` y `es = edit_state if edit_state is not None else {}`.
