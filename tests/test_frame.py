@@ -10,14 +10,21 @@ from clock_tui.ui.frame import (
 from clock_tui.ui.responsive import size_tier
 
 
-def test_size_tier_micro_only_both_small():
-    assert size_tier(3, 30) == "micro"  # w<40 AND h<5
-    assert size_tier(4, 39) == "micro"
+def test_size_tier_micro_solo_altura():
+    assert size_tier(2, 100) == "micro"  # h<3 aunque sea muy ancho
+    assert size_tier(1, 200) == "micro"
+    assert size_tier(2, 20) == "micro"
 
 
-def test_size_tier_full_otherwise():
-    assert size_tier(4, 40) == "full"  # w >= 40
-    assert size_tier(5, 30) == "full"  # h >= 5
+def test_size_tier_mini_altura_intermedia():
+    assert size_tier(3, 30) == "mini"
+    assert size_tier(4, 100) == "mini"
+    assert size_tier(7, 60) == "mini"
+
+
+def test_size_tier_full_altura_alta():
+    assert size_tier(8, 20) == "full"  # h>=8 aunque sea angosto
+    assert size_tier(8, 40) == "full"
     assert size_tier(20, 60) == "full"
 
 
@@ -131,3 +138,48 @@ def test_draw_frame_bottom_counter_sin_marco_se_omite():
         bottom_counter="(1/1)",
     )
     assert not [s for y, x, s in scr.calls if s == "(1/1)"]
+
+
+def test_draw_frame_mini_estira_y_no_dibuja_helpers():
+    scr = _Rec(3, 60)
+    draw_frame(
+        scr,
+        "Título",
+        ["fila 0", "fila 1", "fila 2"],
+        pairs={"marco": 1, "texto": 2, "helpers": 3},
+        helper_lines=["↑↓ navegar"],
+    )
+    # mini: la caja ocupa toda la pantalla (3 filas) y tiene 1 fila de contenido
+    assert max(y for y, x, s in scr.calls if s) <= 2
+    assert any("[ Título ]" in s or "Título" in s for y, x, s in scr.calls)
+    assert not any(s == "↑↓ navegar" for y, x, s in scr.calls)
+    filas = [s for y, x, s in scr.calls if s == "fila 0"]
+    assert filas
+
+
+def test_draw_frame_mini_centra_caja_chica():
+    scr = _Rec(7, 60)
+    draw_frame(
+        scr,
+        "Título",
+        ["fila A"],
+        pairs={"marco": 1, "texto": 2, "helpers": 3},
+        helper_lines=["↑↓ navegar"],
+    )
+    # 1 solo contenido → box_h=5, centrado en h=7 → borde inferior en la fila 5
+    assert any(s == "fila A" for y, x, s in scr.calls)
+    assert not any(s == "↑↓ navegar" for y, x, s in scr.calls)
+
+
+def test_draw_frame_full_mantiene_helpers_y_footer():
+    scr = _Rec(10, 60)
+    draw_frame(
+        scr,
+        "Título",
+        ["fila A"],
+        pairs={"marco": 1, "texto": 2, "helpers": 3, "nav": 4},
+        helper_lines=["↑↓ navegar"],
+        footer="NORMAL",
+    )
+    assert any(s == "↑↓ navegar" for y, x, s in scr.calls)
+    assert any(s == "NORMAL" for y, x, s in scr.calls)

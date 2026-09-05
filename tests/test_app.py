@@ -638,12 +638,19 @@ def test_config_theme_cycle_applies(app):
 
 
 def test_render_micro_tier(app):
-    app.stdscr.h, app.stdscr.w = 3, 15
+    app.stdscr.h, app.stdscr.w = 2, 15
     app._render()
 
 
+def test_render_mini_tier_all_views(app):
+    app.stdscr.h, app.stdscr.w = 5, 40
+    for view in range(7):
+        app.router.goto_view(view)
+        app._render()
+
+
 def test_resize_handler_redraws(app, fake_curses):
-    app.stdscr.h, app.stdscr.w = 3, 10
+    app.stdscr.h, app.stdscr.w = 2, 10
     app.stdscr.cleared = False
     app._on_resize()
     assert app.stdscr.cleared is True

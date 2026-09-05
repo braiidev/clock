@@ -162,11 +162,13 @@ def draw_frame(
     sh, sw = painter.size
     tier = size_tier(sh, sw)
 
-    if weather_line and tier != "micro":
+    if weather_line and tier == "full":
         wx = max(0, (sw - len(weather_line)) // 2)
         painter.safe(0, wx, weather_line[: sw - 1], p_clima)
 
     helper_lines = list(helper_lines or [])
+    if tier == "mini":
+        helper_lines = []  # mini: sin helpers (D20)
     n_help = len(helper_lines)
     all_widths = (
         [display_width(r) for r in rows]
@@ -174,20 +176,33 @@ def draw_frame(
         + [display_width(title) + 8, 44]
     )
     box_w = min(max(all_widths) + 6, sw - 2)
-    box_h = min(len(rows) + 4, content_capacity(sh, n_help) + 4)
-    total_h = box_h + (n_help + 1 if n_help else 0)
-    sy = max(1, (sh - 1 - total_h) // 2)
+    if tier == "mini":
+        # la caja se estira a pantalla completa (sin footer): usa todo el alto
+        box_h = min(len(rows) + 4, sh)
+        box_h = max(box_h, 3)
+        pad = 1 if box_h < 5 else 2
+        n_content = max(0, box_h - pad - 1)
+        total_h = box_h
+    else:
+        box_h = min(len(rows) + 4, content_capacity(sh, n_help) + 4)
+        pad = 2
+        n_content = max(0, box_h - 4)
+        total_h = box_h + (n_help + 1 if n_help else 0)
+    if tier == "mini":
+        sy = max(0, (sh - box_h) // 2)
+    else:
+        sy = max(1, (sh - 1 - total_h) // 2)
     sx = max(0, (sw - box_w) // 2)
 
     if mostrar_marco:
         draw_box(painter, sy, sx, box_h, box_w, title, attr=p_marco)
-        content_y0 = sy + 2
+        content_y0 = sy + pad
     else:
         painter.centered(sy, sx, box_w, f"[ {title} ]", p_marco | curses.A_BOLD)
-        content_y0 = sy + 2
+        content_y0 = sy + (1 if tier == "mini" else 2)
 
     content_w = max(1, box_w - 4)
-    for i, row in enumerate(rows[: box_h - 4]):
+    for i, row in enumerate(rows[:n_content]):
         attr = p_texto
         if row_attrs is not None and i < len(row_attrs):
             ra = row_attrs[i]
@@ -211,7 +226,7 @@ def draw_frame(
             painter.safe(sy + box_h - 1, bx, bottom_counter, p_nav or p_marco)
 
     fy = sh - 1
-    if tier != "micro" and footer:
+    if tier == "full" and footer:
         if 0 <= fy < sh:
             painter.safe(fy, max(0, (sw - display_width(footer)) // 2), footer, p_nav)
 
