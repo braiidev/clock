@@ -5,3 +5,6 @@ __pycache__/
 .pytest_cache/
 build/
 dist/
+
+# basura por redireccion tipica (espacio + parentesis)
+ )
