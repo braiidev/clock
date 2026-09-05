@@ -11,7 +11,7 @@ from typing import Any
 
 from clock_tui.ui.frame import draw_frame
 
-from .model import ClockModel
+from .model import ClockModel, _WC_MAX_VISIBLE
 
 _PICKER_MAX_VISIBLE = 10
 
@@ -63,13 +63,14 @@ def render(
         return
 
     rows = [date_line]
-    wc_rows = _build_wc_rows(model, pairs)
-    if wc_rows:
-        rows.extend(wc_rows)
+    if config.get("wc_mostrar", "ver") != "no ver":
+        wc_rows = _build_wc_rows(model, pairs)
+        if wc_rows:
+            rows.extend(wc_rows)
 
     helper = (
         [
-            "\u2191\u2193:secci\u00f3n  \u2190\u2192:alternar WC  a:+WC  e:editar  d:borrar"
+            "\u2191\u2193 jk:nav WC  \u2190\u2192:alternar  a:+WC  e:editar  d:borrar  J/K:orden"
         ]
         if mostrar_helpers
         else []
@@ -90,16 +91,15 @@ def _build_wc_rows(model: ClockModel, pairs: dict[str, int]) -> list[str]:
         return []
     rows: list[str] = []
     n = len(model.wc_list)
-    idx = model.wc_idx % n
-    for i in range(min(4, n)):
-        pos = (idx + i) % n
-        wc = model.wc_list[pos]
+    for i in range(min(_WC_MAX_VISIBLE, n - model.wc_scroll)):
+        i_abs = model.wc_scroll + i
+        wc = model.wc_list[i_abs]
         hhmm = model.wc_time_str(wc.zona)
-        texto = f"{wc.apodo} {hhmm}"
-        if i == 0:
-            rows.append(f"\u00bb{texto}\u00ab")
-        else:
-            rows.append(f" {texto} ")
+        sel = "\u25ba" if i_abs == model.wc_idx else " "
+        rows.append(f"{sel} {wc.apodo} {hhmm}")
+    if n > _WC_MAX_VISIBLE:
+        shown_end = min(model.wc_scroll + _WC_MAX_VISIBLE, n)
+        rows.append(f"  ({model.wc_scroll + 1}\u2013{shown_end} de {n})")
     return rows
 
 

@@ -1,14 +1,14 @@
 # TODO
 
 ## Doing
-- [ ] v1.2.7: Reloj — WCs como filas con ►, scroll window, wc_mostrar funcional - v0.33
+- [ ] v1.2.8: Dashboard — próxima alarma por recurrencia (_next_occurrence) + color clima - v0.34
 
 ## Next
-- [ ] v1.2.8: Dashboard — próxima alarma por recurrencia (_next_occurrence) + color clima - v0.34
 - [ ] v1.2.9: Config — selector ►, Data→Sistema, tema Flatline, alarmas_mostrar en Dashboard - v0.35
 - [ ] v1.2.10: Auditoría (pytest/pyright/black) + docs + bump semver 1.2.0 - v0.36
 
 ## Done
+- [x] v1.2.7: Reloj — WCs como filas con ►, scroll window, wc_mostrar funcional - v0.33
 - [x] v1.2.6: Navegación hjkl (alarms, timers, dashboard, clock) - v0.32
 - [x] v1.2.5: Reorden con J/K (alarms, timers, world_clocks persistido) - v0.31
 - [x] v1.2.4: Confirmar borrado con y/Y/s/S (timers nuevo + accept en alarms/todo/clock) - v0.30

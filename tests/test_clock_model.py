@@ -56,6 +56,40 @@ def test_wc_delete():
     assert m.wc_list[0].zona == "Asia/Tokyo"
 
 
+def test_nav_wc_wraps():
+    m = _model([WorldClock("UTC", "U"), WorldClock("Asia/Tokyo", "TYO")])
+    m.wc_idx = 1
+    m.nav_wc(1)
+    assert m.wc_idx == 0
+
+
+def test_nav_wc_empty_does_nothing():
+    m = _model()
+    m.nav_wc(1)
+    assert m.wc_idx == 0
+
+
+def test_wc_swap_swaps_list():
+    m = _model([WorldClock("UTC", "U"), WorldClock("Asia/Tokyo", "TYO")])
+    m.wc_swap(0, 1)
+    assert m.wc_list[0].zona == "Asia/Tokyo"
+    assert m.wc_list[1].zona == "UTC"
+
+
+def test_nav_wc_clamps_scroll():
+    wcs = [WorldClock("UTC", f"W{i}") for i in range(6)]
+    m = _model(wcs)
+    m.wc_idx = 0
+    for _ in range(4):
+        m.nav_wc(1)
+    assert m.wc_idx == 4
+    assert m.wc_scroll == 1
+    for _ in range(4):
+        m.nav_wc(-1)
+    assert m.wc_idx == 0
+    assert m.wc_scroll == 0
+
+
 def test_wc_delete_clamps_idx():
     m = _model([WorldClock("UTC", "U"), WorldClock("Asia/Tokyo", "TYO")])
     m.wc_idx = 1

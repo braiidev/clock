@@ -18,6 +18,7 @@ from clock_tui.features.clock.world_zones import (
 )
 
 _PICKER_MAX_VISIBLE = 10
+_WC_MAX_VISIBLE = 4
 
 
 @dataclass
@@ -99,6 +100,27 @@ class ClockModel:
         self.wc_list.pop(idx)
         if self.wc_idx >= len(self.wc_list):
             self.wc_idx = max(0, len(self.wc_list) - 1)
+        self._clamp_wc_scroll()
+
+    def nav_wc(self, delta: int) -> None:
+        if not self.wc_list:
+            return
+        self.wc_idx = (self.wc_idx + delta) % len(self.wc_list)
+        self._clamp_wc_scroll()
+
+    def wc_swap(self, a: int, b: int) -> None:
+        self.wc_list[a], self.wc_list[b] = self.wc_list[b], self.wc_list[a]
+        self._clamp_wc_scroll()
+
+    def _clamp_wc_scroll(self) -> None:
+        n = len(self.wc_list)
+        if not n:
+            self.wc_scroll = 0
+            return
+        if self.wc_idx < self.wc_scroll:
+            self.wc_scroll = self.wc_idx
+        elif self.wc_idx >= self.wc_scroll + _WC_MAX_VISIBLE:
+            self.wc_scroll = self.wc_idx - _WC_MAX_VISIBLE + 1
 
     # ── Picker ──
 

@@ -32,6 +32,21 @@ def test_j_navigates_wc_next():
     assert m.wc_idx == 1
 
 
+def test_down_navigates_wc():
+    c = ClockController()
+    m = _model(3)
+    c.handle(m, curses.KEY_DOWN, _ctx())
+    assert m.wc_idx == 1
+
+
+def test_up_navigates_wc_prev():
+    c = ClockController()
+    m = _model(3)
+    m.wc_idx = 1
+    c.handle(m, curses.KEY_UP, _ctx())
+    assert m.wc_idx == 0
+
+
 def test_k_navigates_wc_prev():
     c = ClockController()
     m = _model(3)

@@ -109,20 +109,16 @@ class ClockController:
     # ── Normal mode ──
 
     def _handle_normal(self, model: ClockModel, key: int) -> ActionResult:
+        if key in (curses.KEY_DOWN, curses.KEY_RIGHT, ord("j")):
+            model.nav_wc(1)
+            return ActionResult()
+        if key in (curses.KEY_UP, curses.KEY_LEFT, ord("k")):
+            model.nav_wc(-1)
+            return ActionResult()
         if key == ord("J"):
             return self._reorder(model, 1)
         if key == ord("K"):
             return self._reorder(model, -1)
-        if key == curses.KEY_DOWN:
-            return self._nav_section(model)
-        if key == curses.KEY_UP:
-            return self._nav_section(model)
-        if key in (curses.KEY_RIGHT, ord("j")) and model.wc_list:
-            model.wc_idx = (model.wc_idx + 1) % len(model.wc_list)
-            return ActionResult()
-        if key in (curses.KEY_LEFT, ord("k")) and model.wc_list:
-            model.wc_idx = (model.wc_idx - 1) % len(model.wc_list)
-            return ActionResult()
         if key == ord("a"):
             model.picker_open(edit_target=None)
             return ActionResult()
@@ -134,12 +130,6 @@ class ClockController:
             return ActionResult()
         return ActionResult()
 
-    def _nav_section(self, model: ClockModel) -> ActionResult:
-        if not model.wc_list:
-            return ActionResult()
-        model.wc_idx = model.wc_idx % len(model.wc_list)
-        return ActionResult()
-
     def _reorder(self, model: ClockModel, delta: int) -> ActionResult:
         if not model.wc_list:
             return ActionResult()
@@ -147,6 +137,6 @@ class ClockController:
         nxt = idx + delta
         if nxt < 0 or nxt >= len(model.wc_list):
             return ActionResult()
-        model.wc_list[idx], model.wc_list[nxt] = model.wc_list[nxt], model.wc_list[idx]
+        model.wc_swap(idx, nxt)
         model.wc_idx = nxt
         return ActionResult(needs_save=True)
