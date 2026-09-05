@@ -161,3 +161,27 @@ def test_o_ignored_on_dashboard():
     assert res.toggle_activity is False
     assert r.activity_open is False
     assert res.feature_dispatched is True
+
+
+def test_capture_dispatches_globals_as_feature_keys():
+    """En captura (edición), q/?/o/0-9/[] van a la feature, no a los globales."""
+    r = Router()
+    for key in (ord("q"), ord("?"), ord("o"), ord("3"), ord("]"), ord("[")):
+        res = r.route(key, _dispatch, capture=True)
+        assert res.feature_dispatched is True
+        assert res.feature_result == ("dispatched", VIEW_DASHBOARD, key)
+        assert res.quit_app is False
+        assert res.toggle_help is False
+        assert res.toggle_activity is False
+        assert res.view_changed is False
+    assert r.help_open is False
+    assert r.activity_open is False
+    assert r.view_index() == VIEW_DASHBOARD
+
+
+def test_capture_keeps_view_unchanged():
+    """La tecla de cambio de vista en captura NO navega."""
+    r = Router()
+    res = r.route(ord("3"), _dispatch, capture=True)
+    assert res.view_changed is False
+    assert r.view_index() == VIEW_DASHBOARD

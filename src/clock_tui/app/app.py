@@ -291,11 +291,42 @@ class ClockApp:
             return self._handle_browser_key(key)
         if self._log_viewer is not None:
             return self._handle_log_viewer_key(key)
+        # Modo de edición activo: el feature captura TODAS las teclas
+        # (los globales q/0-6/o/? se escriben en el campo en vez de ejecutarse).
+        if self._capture_active():
+            res = self.router.route(key, self._dispatch, capture=True)
+            if res.feature_result is not None:
+                self._handle_feature_result(res.feature_result)
+            return False
         res = self.router.route(key, self._dispatch)
         if res.quit_app:
             return True
         if res.feature_dispatched and res.feature_result is not None:
             self._handle_feature_result(res.feature_result)
+        return False
+
+    def _capture_active(self) -> bool:
+        """True si la vista activa está en modo edición/confirmación.
+
+        Mientras un feature captura el teclado, los globales (q, 0-6, o, ?)
+        quedan suspendidos y todas las teclas van a su controller.
+        """
+        view = self.router.view_index()
+        if view == VIEW_ALARMS:
+            es = self._alarm_edit
+            return bool(es.get("edit_mode") or es.get("confirm_delete"))
+        if view == VIEW_TIMERS:
+            return bool(self.timers.edit_mode)
+        if view == VIEW_TODO:
+            return bool(self.todo.edit_mode or self.todo.confirm_delete)
+        if view == VIEW_CLOCK:
+            return bool(
+                self.clock.picker.open
+                or self.clock.edit_nick.active
+                or self.clock.confirm_delete
+            )
+        if view == VIEW_CONFIG:
+            return bool(self.config_model.text_edit)
         return False
 
     def _handle_feature_result(self, result: object) -> None:

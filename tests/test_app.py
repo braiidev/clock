@@ -786,3 +786,114 @@ def test_build_activity_sections_no_incluye_timer_pausado(app):
     )
     secs = app._build_activity_sections()
     assert not any(t == "Timers activos" for t, _ in secs)
+
+
+# ── Captura de teclas durante edición ──
+
+
+def test_capture_activa_por_edicion(app):
+    from clock_tui.app.router import (
+        VIEW_ALARMS,
+        VIEW_CLOCK,
+        VIEW_CONFIG,
+        VIEW_TIMERS,
+        VIEW_TODO,
+    )
+
+    app.router.goto_view(VIEW_TIMERS)
+    app.timers.edit_mode = True
+    assert app._capture_active() is True
+    app.timers.edit_mode = False
+    assert app._capture_active() is False
+
+    app.router.goto_view(VIEW_ALARMS)
+    app._alarm_edit["edit_mode"] = True
+    assert app._capture_active() is True
+    app._alarm_edit["edit_mode"] = False
+    app._alarm_edit["confirm_delete"] = True
+    assert app._capture_active() is True
+    app._alarm_edit["confirm_delete"] = False
+    assert app._capture_active() is False
+
+    app.router.goto_view(VIEW_TODO)
+    app.todo.confirm_delete = True
+    assert app._capture_active() is True
+    app.todo.confirm_delete = False
+    assert app._capture_active() is False
+
+    app.router.goto_view(VIEW_CLOCK)
+    app.clock.picker.open = True
+    assert app._capture_active() is True
+    app.clock.picker.open = False
+    app.clock.edit_nick.active = True
+    assert app._capture_active() is True
+    app.clock.edit_nick.active = False
+    app.clock.confirm_delete = True
+    assert app._capture_active() is True
+    app.clock.confirm_delete = False
+    assert app._capture_active() is False
+
+    app.router.goto_view(VIEW_CONFIG)
+    app.config_model.text_edit = True
+    assert app._capture_active() is True
+    app.config_model.text_edit = False
+    assert app._capture_active() is False
+
+
+def test_capture_envia_globals_al_controller_de_timers(app):
+    """Con edit_mode activo, 'o' se escribe en el campo y no abre el overlay."""
+    from clock_tui.app.router import VIEW_TIMERS
+
+    app.router.goto_view(VIEW_TIMERS)
+    app.timers.edit_mode = True
+    app.timers.temp_name = ""
+    quit_app = app._handle_key(ord("o"))
+    assert quit_app is False
+    assert app.timers.temp_name == "o"
+    assert app.router.activity_open is False
+
+
+def test_capture_alarmas_escribe_digitos_y_o(app):
+    from clock_tui.app.router import VIEW_ALARMS
+
+    app.router.goto_view(VIEW_ALARMS)
+    app._alarm_edit.update(
+        edit_mode=True,
+        edit_field=0,
+        temp_name="",
+        temp_time=[0, 0],
+        temp_time_field=0,
+        temp_days=[],
+        temp_days_cursor=0,
+    )
+    app._handle_key(ord("1"))
+    assert app._alarm_edit["temp_name"] == "1"
+    app._handle_key(ord("o"))
+    assert app._alarm_edit["temp_name"] == "1o"
+    assert app.router.activity_open is False
+    assert app.router.view_index() == VIEW_ALARMS
+
+
+def test_capture_cancela_con_esc_y_restaura_globals(app):
+    from clock_tui.app.router import VIEW_ALARMS
+
+    app.router.goto_view(VIEW_ALARMS)
+    app._alarm_edit.update(
+        edit_mode=True,
+        edit_field=0,
+        temp_name="",
+        temp_time=[0, 0],
+        temp_time_field=0,
+        temp_days=[],
+        temp_days_cursor=0,
+    )
+    app._handle_key(ord("o"))
+    assert app._alarm_edit["temp_name"] == "o"
+
+    app._handle_key(27)
+    assert app._alarm_edit.get("edit_mode") is False
+    assert app._capture_active() is False
+    app._handle_key(ord("o"))
+    assert app.router.activity_open is True
+    app._handle_key(ord("o"))
+    assert app.router.activity_open is False

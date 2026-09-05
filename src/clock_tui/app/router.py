@@ -72,45 +72,50 @@ class Router:
 
     # ── Dispatch principal ──
 
-    def route(self, key: int, dispatch: Any) -> RouterResult:
+    def route(self, key: int, dispatch: Any, *, capture: bool = False) -> RouterResult:
         """Procesa una tecla.
 
         `dispatch` es un callable feature-agnóstico que invoca al controller de
         la vista activa y devuelve su ActionResult.
+
+        Si `capture` es True (la vista activa está editando/confirmando), TODAS
+        las teclas van al controller de la feature: los globales (q, 0-6, o, ?)
+        y el cierre de overlays quedan suspendidos hasta salir del modo.
         """
-        # Help abierto: cualquier tecla lo cierra (excepto q que sale).
-        if self.help_open:
+        if not capture:
+            # Help abierto: cualquier tecla lo cierra (excepto q que sale).
+            if self.help_open:
+                if key == ord("q"):
+                    return RouterResult(quit_app=True)
+                self.help_open = False
+                return RouterResult(toggle_help=True)
+
+            # Overlay de actividad abierto: cualquier tecla lo cierra (excepto q).
+            if self.activity_open:
+                if key == ord("q"):
+                    return RouterResult(quit_app=True)
+                self.activity_open = False
+                return RouterResult(toggle_activity=True)
+
+            # ── Globales ──
             if key == ord("q"):
                 return RouterResult(quit_app=True)
-            self.help_open = False
-            return RouterResult(toggle_help=True)
-
-        # Overlay de actividad abierto: cualquier tecla lo cierra (excepto q).
-        if self.activity_open:
-            if key == ord("q"):
-                return RouterResult(quit_app=True)
-            self.activity_open = False
-            return RouterResult(toggle_activity=True)
-
-        # ── Globales ──
-        if key == ord("q"):
-            return RouterResult(quit_app=True)
-        if key in (ord("?"), ord("/")):
-            self.help_open = True
-            return RouterResult(toggle_help=True)
-        if key == ord("o") and self.current_view != VIEW_DASHBOARD:
-            self.activity_open = not self.activity_open
-            return RouterResult(toggle_activity=True)
-        if ord("0") <= key <= ord(str(NUM_VIEWS - 1)):
-            idx = key - ord("0")
-            changed = self.goto_view(idx)
-            return RouterResult(view_changed=changed)
-        if key == ord("]"):
-            changed = self.cycle_view(1)
-            return RouterResult(view_changed=changed)
-        if key == ord("["):
-            changed = self.cycle_view(-1)
-            return RouterResult(view_changed=changed)
+            if key in (ord("?"), ord("/")):
+                self.help_open = True
+                return RouterResult(toggle_help=True)
+            if key == ord("o") and self.current_view != VIEW_DASHBOARD:
+                self.activity_open = not self.activity_open
+                return RouterResult(toggle_activity=True)
+            if ord("0") <= key <= ord(str(NUM_VIEWS - 1)):
+                idx = key - ord("0")
+                changed = self.goto_view(idx)
+                return RouterResult(view_changed=changed)
+            if key == ord("]"):
+                changed = self.cycle_view(1)
+                return RouterResult(view_changed=changed)
+            if key == ord("["):
+                changed = self.cycle_view(-1)
+                return RouterResult(view_changed=changed)
 
         # ── Delegar a la feature activa ──
         result = dispatch(self.current_view, key)
