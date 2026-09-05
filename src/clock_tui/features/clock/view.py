@@ -69,9 +69,7 @@ def render(
             rows.extend(wc_rows)
 
     helper = (
-        [
-            "\u2191\u2193 jk:nav WC  \u2190\u2192:alternar  a:+WC  e:editar  d:borrar  J/K:orden"
-        ]
+        ["\u2191\u2193 \u2190\u2192 jk:nav WC  J/K:orden  a:+WC  e:editar  d:borrar"]
         if mostrar_helpers
         else []
     )

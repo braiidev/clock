@@ -73,7 +73,7 @@ def _render_list(
 
     helper = (
         [
-            "a:nuevo  \u2191\u2191:nav  \u2190\u2192/JK:mover  Space:\u2714/\u25cb  e:editar  d:borrar  x:alarma"
+            "a:nuevo  \u2191\u2193 jk:nav  \u2190\u2192/JK:mover  Space:\u2714/\u25cb  e:editar  d:borrar  x:alarma"
         ]
         if mostrar_helpers
         else []

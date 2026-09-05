@@ -76,7 +76,7 @@ _GLOBAL_HELP_LINES = [
     "q:salir   0-6:cambiar vista   []:ciclar vista   ?:esta ayuda",
     "o:actividad (alarmas, timers, crono, tareas)",
     "↑↓ ←→ hj kl: navegar   Esc:cancelar",
-    "n:nuevo   e:editar   d:borrar(con tecla)   Space:toggle/play   R:reset",
+    "a:nuevo   e:editar   d:borrar(confirmado)   Space:toggle/play",
 ]
 
 
@@ -85,11 +85,14 @@ class ClockApp:
         0: [
             "Vista de solo lectura: resumen de todo lo activo. Enter:ir a la fila, u:actualizar clima"
         ],
-        1: ["↑↓ jk:nav WC  ←→:alternar  J/K:orden  a:+WC  e:editar  d:borrar"],
-        2: ["n:nueva  ↑↓ jk:nav  J/K:orden  Space:on/off  e:editar  d:borrar"],
-        3: ["↑↓ jk:fila  Tab:cicla  ←→:valor  Space:play/pause  R:reset"],
-        4: ["n:nuevo  ↑↓:nav  Tab:campo  ←→:valor  Space:play/pause  R:reset"],
-        5: ["Space:play/pause  Tab:marcar lap  d:borrar última  R:reset"],
+        1: ["↑↓ ←→ jk:nav WC  J/K:orden  a:+WC  e:editar  d:borrar"],
+        2: ["a:nueva  ↑↓ jk:nav  J/K:orden  Space:on/off  e:editar  d:borrar"],
+        3: [
+            "↑↓ jk:nav  J/K:orden  a:nuevo  e:editar  d:borrar",
+            "Tab:campo  ←→:valor  Space:play/pause  r:reset",
+        ],
+        4: ["Space:play/pause  m:marcar lap  d:borrar último  r:reset"],
+        5: ["a:nuevo  ↑↓ jk:nav  ←→/JK:mover  Space:✔/○  e:editar  d:borrar  x:alarma"],
         6: ["←→:categoría  ↑↓:nav  Enter/Space:cambiar  Esc:cancelar edición"],
     }
 

@@ -135,6 +135,30 @@ def test_bootstrap_models(app):
     assert set(app._pairs) == {"marco", "texto", "clima", "helpers", "nav"}
 
 
+def test_global_help_no_menciona_n_ni_reset_general():
+    from clock_tui.app.app import _GLOBAL_HELP_LINES
+
+    joined = "\n".join(_GLOBAL_HELP_LINES)
+    assert "a:nuevo" in joined
+    assert "n:nuevo" not in joined
+    assert "n:nueva" not in joined
+    assert "R:" not in joined
+
+
+def test_help_por_vista_coherente_con_su_controller():
+    from clock_tui.app.app import ClockApp
+
+    h = ClockApp._HELP_BY_VIEW
+    assert h[2][0].startswith("a:nueva")
+    assert "n:" not in h[2][0]
+    crono = "\n".join(h[4])
+    assert "m:marcar lap" in crono and "r:reset" in crono
+    assert "n:nuevo" not in crono and "Tab:campo" not in crono
+    todo = "\n".join(h[5])
+    assert "a:nuevo" in todo and "x:alarma" in todo
+    assert "Tab:marcar" not in todo and "R:" not in todo
+
+
 def test_dispatch_all_views_returns_actions(app):
     from clock_tui.app.router import (
         VIEW_ALARMS,

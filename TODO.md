@@ -5,6 +5,7 @@
 ## Next
 
 ## Done
+- [x] v1.2.15: Ayuda — cada vista/?: coherencia con su controller (a ≠ n, r no R, crono ≠ to-do) - v0.43
 - [x] v1.2.14: Reloj — WC muestran diferencia local-wc - v0.41
 - [x] v1.2.13: Dashboard — "Próxima alarma" muestra el día (desambiguar 1d+ de repetición) - v0.40
 - [x] v1.2.12: hjkl espejo de flechas en editores/selectores - v0.39
