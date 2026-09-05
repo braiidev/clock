@@ -55,8 +55,8 @@ class ClockController:
                 return ActionResult()
             return ActionResult()
 
-        if key in (curses.KEY_UP, curses.KEY_DOWN):
-            delta = 1 if key == curses.KEY_DOWN else -1
+        if key in (curses.KEY_UP, curses.KEY_DOWN, ord("j"), ord("k")):
+            delta = 1 if key in (curses.KEY_DOWN, ord("j")) else -1
             model.picker_nav(delta)
             return ActionResult()
         if key == ord("f"):

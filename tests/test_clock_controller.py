@@ -133,6 +133,17 @@ def test_picker_nav_up():
     assert m.picker.idx == len(m.picker.zones) - 1
 
 
+def test_picker_nav_j_k():
+    c = ClockController()
+    m = _model()
+    m.picker_open()
+    initial = m.picker.idx
+    c.handle(m, ord("j"), _ctx())
+    assert m.picker.idx == initial + 1
+    c.handle(m, ord("k"), _ctx())
+    assert m.picker.idx == initial
+
+
 def test_picker_f_opens_filter():
     c = ClockController()
     m = _model()

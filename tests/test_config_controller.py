@@ -28,6 +28,15 @@ def test_right_switch_tab():
     assert m.tab_idx == 1
 
 
+def test_h_l_switch_tab():
+    c = ConfigController()
+    m = _model()
+    c.handle(m, ord("l"), _ctx())
+    assert m.tab_idx == 1
+    c.handle(m, ord("h"), _ctx())
+    assert m.tab_idx == 0
+
+
 def test_down_nav():
     c = ConfigController()
     m = _model()

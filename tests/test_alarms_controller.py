@@ -215,6 +215,51 @@ def test_edit_field_navigation():
     assert es["edit_field"] == 0
 
 
+def test_edit_j_k_nav_fuera_del_campo_nombre():
+    c = AlarmsController()
+    m = _model()
+    es = _es(edit_mode=True, edit_field=1)
+    c.handle(m, ord("j"), _ctx(), es)
+    assert es["edit_field"] == 2
+    c.handle(m, ord("k"), _ctx(), es)
+    assert es["edit_field"] == 1
+
+
+def test_edit_j_escribe_en_campo_nombre():
+    c = AlarmsController()
+    m = _model()
+    es = _es(edit_mode=True, edit_field=0, temp_name="")
+    c.handle(m, ord("j"), _ctx(), es)
+    assert es["temp_name"] == "j"
+    assert es["edit_field"] == 0
+
+
+def test_edit_time_right():
+    c = AlarmsController()
+    m = _model()
+    es = _es(edit_mode=True, edit_field=1, temp_time=[10, 30], temp_time_field=1)
+    c.handle(m, curses.KEY_RIGHT, _ctx(), es)
+    assert es["temp_time"] == [10, 31]
+
+
+def test_edit_time_left():
+    c = AlarmsController()
+    m = _model()
+    es = _es(edit_mode=True, edit_field=1, temp_time=[10, 30], temp_time_field=1)
+    c.handle(m, curses.KEY_LEFT, _ctx(), es)
+    assert es["temp_time"] == [10, 29]
+
+
+def test_edit_time_h_l_adjust():
+    c = AlarmsController()
+    m = _model()
+    es = _es(edit_mode=True, edit_field=1, temp_time=[10, 30], temp_time_field=1)
+    c.handle(m, ord("l"), _ctx(), es)
+    assert es["temp_time"] == [10, 31]
+    c.handle(m, ord("h"), _ctx(), es)
+    assert es["temp_time"] == [10, 30]
+
+
 def test_edit_name_type():
     c = AlarmsController()
     m = _model()
@@ -293,6 +338,16 @@ def test_edit_days_cursor():
     es = _es(edit_mode=True, edit_field=2, temp_days_cursor=0)
     c.handle(m, curses.KEY_RIGHT, _ctx(), es)
     assert es["temp_days_cursor"] == 1
+
+
+def test_edit_days_h_l_cursor():
+    c = AlarmsController()
+    m = _model()
+    es = _es(edit_mode=True, edit_field=2, temp_days_cursor=0)
+    c.handle(m, ord("l"), _ctx(), es)
+    assert es["temp_days_cursor"] == 1
+    c.handle(m, ord("h"), _ctx(), es)
+    assert es["temp_days_cursor"] == 0
 
 
 def test_edit_days_save():

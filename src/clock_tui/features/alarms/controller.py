@@ -69,6 +69,11 @@ class AlarmsController:
 
         if ef == 0:
             return self._edit_name(key, es)
+
+        if key in (ord("j"), ord("k")):
+            es["edit_field"] = (ef + (1 if key == ord("j") else -1)) % 3
+            return ActionResult()
+
         if ef == 1:
             return self._edit_time(key, es)
         if ef == 2:
@@ -89,11 +94,11 @@ class AlarmsController:
     def _edit_time(self, key: int, es: dict[str, Any]) -> ActionResult:
         if key == 9:
             es["temp_time_field"] = (es["temp_time_field"] + 1) % 2
-        elif key == curses.KEY_RIGHT:
+        elif key in (curses.KEY_RIGHT, ord("l")):
             f = es["temp_time_field"]
             lim = 24 if f == 0 else 60
             es["temp_time"][f] = (es["temp_time"][f] + 1) % lim
-        elif key == curses.KEY_LEFT:
+        elif key in (curses.KEY_LEFT, ord("h")):
             f = es["temp_time_field"]
             lim = 24 if f == 0 else 60
             es["temp_time"][f] = (es["temp_time"][f] - 1) % lim
@@ -105,9 +110,9 @@ class AlarmsController:
     def _edit_days(
         self, model: AlarmsModel, key: int, es: dict[str, Any]
     ) -> ActionResult:
-        if key == curses.KEY_RIGHT:
+        if key in (curses.KEY_RIGHT, ord("l")):
             es["temp_days_cursor"] = (es["temp_days_cursor"] + 1) % 7
-        elif key == curses.KEY_LEFT:
+        elif key in (curses.KEY_LEFT, ord("h")):
             es["temp_days_cursor"] = (es["temp_days_cursor"] - 1) % 7
         elif key == ord(" "):
             d = es["temp_days_cursor"]

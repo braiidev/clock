@@ -93,9 +93,9 @@ class TimersController:
             return self._edit_name(model)
         if key == 9:
             return self._cycle_field(model)
-        if key == curses.KEY_RIGHT:
+        if key in (curses.KEY_RIGHT, ord("l")):
             return self._adjust(model, +1)
-        if key == curses.KEY_LEFT:
+        if key in (curses.KEY_LEFT, ord("h")):
             return self._adjust(model, -1)
         if key == ord(" "):
             return self._toggle(model, now)

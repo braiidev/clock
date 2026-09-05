@@ -48,10 +48,10 @@ class ConfigController:
         return ActionResult()
 
     def _handle_normal(self, model: ConfigModel, key: int) -> ActionResult:
-        if key == curses.KEY_LEFT:
+        if key in (curses.KEY_LEFT, ord("h")):
             model.switch_tab(-1)
             return ActionResult()
-        if key == curses.KEY_RIGHT:
+        if key in (curses.KEY_RIGHT, ord("l")):
             model.switch_tab(1)
             return ActionResult()
 

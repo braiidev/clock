@@ -266,6 +266,28 @@ def test_edit_type_text():
     assert m.temp_texto == "X"
 
 
+def test_edit_j_escribe_en_campo_texto():
+    c = TodoController()
+    m = _model()
+    m.open_edit(idx=None)
+    m.edit_field = 1
+    c.handle(m, ord("j"), _ctx())
+    assert m.temp_texto == "j"
+    assert m.edit_field == 1
+
+
+def test_edit_j_nav_fuera_del_texto():
+    c = TodoController()
+    m = _model()
+    m.open_edit(idx=None)
+    m.edit_toggle_recordarme()
+    m.edit_field = 4
+    c.handle(m, ord("j"), _ctx())
+    assert m.edit_field == (4 + 1) % m.n_fields
+    c.handle(m, ord("k"), _ctx())
+    assert m.edit_field == 4
+
+
 def test_edit_backspace():
     c = TodoController()
     m = _model()

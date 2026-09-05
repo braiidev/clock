@@ -299,6 +299,16 @@ def test_adjust_wraps():
     assert m.timers[0].time[1] == 0
 
 
+def test_adjust_h_l_mirror():
+    c = TimersController()
+    m = _model()
+    m.time_field = 1
+    c.handle(m, ord("l"), _ctx())
+    assert m.timers[0].time[1] == 2
+    c.handle(m, ord("h"), _ctx())
+    assert m.timers[0].time[1] == 1
+
+
 def test_adjust_hours_limit():
     c = TimersController()
     m = _model()

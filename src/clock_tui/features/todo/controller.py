@@ -39,6 +39,11 @@ class TodoController:
             model.edit_nav_field(delta)
             return ActionResult()
 
+        if f != 1 and key in (ord("j"), ord("k")):
+            delta = 1 if key == ord("j") else -1
+            model.edit_nav_field(delta)
+            return ActionResult()
+
         if f == 0:
             if key in (9, ord(" ")):
                 model.edit_toggle_tipo()
@@ -90,18 +95,18 @@ class TodoController:
         return ActionResult()
 
     def _handle_days(self, model: TodoModel, key: int) -> ActionResult:
-        if key == curses.KEY_RIGHT:
+        if key in (curses.KEY_RIGHT, ord("l")):
             model.edit_nav_days(1)
-        elif key == curses.KEY_LEFT:
+        elif key in (curses.KEY_LEFT, ord("h")):
             model.edit_nav_days(-1)
         elif key == ord(" "):
             model.edit_toggle_day()
         return ActionResult()
 
     def _handle_adj(self, model: TodoModel, key: int, fn: Any) -> ActionResult:
-        if key == curses.KEY_RIGHT:
+        if key in (curses.KEY_RIGHT, ord("l")):
             fn(1)
-        elif key == curses.KEY_LEFT:
+        elif key in (curses.KEY_LEFT, ord("h")):
             fn(-1)
         return ActionResult()
 
