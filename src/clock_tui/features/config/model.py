@@ -17,7 +17,7 @@ from typing import Any
 
 from clock_tui.core.theme import COLOR_LIST, THEME_NAMES, _set_custom_theme
 
-TABS = ["Apariencia", "Reloj", "Clima", "Sonido", "Data", "Sistema"]
+TABS = ["Apariencia", "Reloj", "Clima", "Sonido", "Sistema"]
 
 POSPONER_MIN = [1, 2, 5, 10, 15, 20, 30]
 CLIMA_INTERVALO = [5, 10, 15, 30, 60, 120]
@@ -139,15 +139,17 @@ def config_items() -> list[ConfigItem]:
         ConfigItem(
             "sonido_custom_path", "- Archivo (elegido a mano)", "Sonido", "soundbrowser"
         ),
-        ConfigItem("backup_action", "Crear backup", "Data", "action", "backup"),
-        ConfigItem("restore_action", "Restaurar backup", "Data", "action", "restore"),
+        ConfigItem("backup_action", "Crear backup", "Sistema", "action", "backup"),
         ConfigItem(
-            "log_view_action", "Ver log de errores", "Data", "action", "log_view"
+            "restore_action", "Restaurar backup", "Sistema", "action", "restore"
+        ),
+        ConfigItem(
+            "log_view_action", "Ver log de errores", "Sistema", "action", "log_view"
         ),
         ConfigItem(
             "log_export_action",
             "Descargar log de errores",
-            "Data",
+            "Sistema",
             "action",
             "log_export",
         ),

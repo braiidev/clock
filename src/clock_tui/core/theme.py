@@ -88,6 +88,13 @@ THEMES: dict[str, dict[str, int]] = {
         "helpers": curses.COLOR_MAGENTA,
         "nav": curses.COLOR_MAGENTA,
     },
+    "flatline": {
+        "marco": curses.COLOR_CYAN,
+        "texto": curses.COLOR_WHITE,
+        "clima": curses.COLOR_RED,
+        "helpers": curses.COLOR_RED,
+        "nav": curses.COLOR_RED,
+    },
     "custom": _set_custom_theme(),
 }
 THEME_NAMES = list(THEMES.keys())

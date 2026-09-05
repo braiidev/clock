@@ -42,7 +42,7 @@ def render(
         rows.append("(sin opciones en esta categoria)")
     else:
         for i, it in enumerate(visibles):
-            sel = ">" if i == model.selected_idx else " "
+            sel = "\u25ba" if i == model.selected_idx else " "
             val = model.item_value(it)
             rows.append(f"{sel} {it.label:26s} [{val}]")
 

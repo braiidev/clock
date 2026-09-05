@@ -766,12 +766,13 @@ class ClockApp:
     # ── Snapshot dashboard ──
 
     def _build_dashboard_snapshot(self) -> DashboardSnapshot:
+        mostrar_alarmas = self.config.get("alarmas_mostrar", "ver") != "no ver"
         return DashboardSnapshot(
             now=datetime.datetime.now(),
             show_seconds=self.config.get("mostrar_segundos", True),
             format_24h=self.config.get("formato_24h", True),
             weather_line=self._weather_display_line(),
-            next_alarm=self._next_alarm_data(),
+            next_alarm=self._next_alarm_data() if mostrar_alarmas else None,
             active_timers=[
                 {"name": t.name, "remaining": t.remaining, "idx": i}
                 for i, t in enumerate(self.timers.timers)

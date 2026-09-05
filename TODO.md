@@ -1,12 +1,12 @@
 # TODO
 
 ## Doing
-- [ ] v1.2.9: Config — selector ►, Data→Sistema, tema Flatline, alarmas_mostrar en Dashboard - v0.35
-
-## Next
 - [ ] v1.2.10: Auditoría (pytest/pyright/black) + docs + bump semver 1.2.0 - v0.36
 
+## Next
+
 ## Done
+- [x] v1.2.9: Config — selector ►, Data→Sistema, tema Flatline, alarmas_mostrar en Dashboard - v0.35
 - [x] v1.2.8: Dashboard — próxima alarma por recurrencia (_next_occurrence) + color clima - v0.34
 - [x] v1.2.7: Reloj — WCs como filas con ►, scroll window, wc_mostrar funcional - v0.33
 - [x] v1.2.6: Navegación hjkl (alarms, timers, dashboard, clock) - v0.32

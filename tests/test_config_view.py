@@ -38,3 +38,43 @@ def test_render_does_not_mutate_model():
     assert m.config == config_before
     assert m.tab_idx == tab_before
     assert m.selected_idx == sel_before
+
+
+def test_render_selector_usa_playo():
+    m = ConfigModel(config=default_config(), tab_idx=0, selected_idx=0)
+    captured: dict = {}
+
+    from clock_tui.features.config import view as c_view
+
+    class FakeStdscr:
+        def getmaxyx(self):
+            return 24, 80
+
+        def erase(self):
+            pass
+
+        def addstr(self, *a, **kw):
+            pass
+
+        def refresh(self):
+            pass
+
+    def fake_draw_frame(stdscr, title, rows, **kw):
+        captured["rows"] = list(rows)
+
+    orig = c_view.draw_frame
+    c_view.draw_frame = fake_draw_frame  # type: ignore[assignment]
+    try:
+        c_view.render(
+            FakeStdscr(),
+            m,
+            theme={},
+            pairs={"marco": 1, "texto": 6, "helpers": 2},
+            config={"mostrar_marco": True, "mostrar_helpers": True},
+        )
+    finally:
+        c_view.draw_frame = orig
+
+    visibles = m.visible_items()
+    fila = next(r for r in captured["rows"] if visibles[0].label in r)
+    assert fila.startswith("\u25ba")

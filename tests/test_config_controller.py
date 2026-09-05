@@ -59,7 +59,7 @@ def test_cycle_choice_needs_save():
 def test_action_backup():
     c = ConfigController()
     m = _model()
-    m.switch_tab(TABS.index("Data"))
+    m.switch_tab(TABS.index("Sistema"))
     r = c.handle(m, ord("\n"), _ctx())
     assert r.command == "backup"
 
@@ -67,7 +67,7 @@ def test_action_backup():
 def test_action_restore():
     c = ConfigController()
     m = _model()
-    m.switch_tab(TABS.index("Data"))
+    m.switch_tab(TABS.index("Sistema"))
     m.nav(1)
     r = c.handle(m, ord("\n"), _ctx())
     assert r.command == "restore"
@@ -77,6 +77,8 @@ def test_action_update_check_sistema():
     c = ConfigController()
     m = _model()
     m.switch_tab(TABS.index("Sistema"))
+    for _ in range(4):
+        m.nav(1)
     r = c.handle(m, ord("\n"), _ctx())
     assert r.command == "update_check"
 

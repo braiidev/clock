@@ -29,6 +29,12 @@ def test_theme_names_include_custom():
     assert "custom" in THEME_NAMES
 
 
+def test_flatline_preset_reds():
+    flat = THEMES["flatline"]
+    assert flat["marco"] == THEMES["clasico"]["marco"]
+    assert flat["clima"] == flat["helpers"] == flat["nav"]
+
+
 def test_set_custom_theme_make_and_resolve():
     defaults = _set_custom_theme({"make": True})
     assert defaults["custom_color_marco"] == "Azul"

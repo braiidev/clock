@@ -799,6 +799,23 @@ def test_next_alarm_data_sin_activados(app):
     assert app._next_alarm_data() is None
 
 
+def test_dashboard_snapshot_incluye_proxima_alarma(app):
+    from clock_tui.features.alarms.model import Alarm
+
+    app.alarms.alarms = [Alarm(nombre="A", hora=6, minutos=0, status="activado")]
+    snap = app._build_dashboard_snapshot()
+    assert snap.next_alarm is not None
+
+
+def test_dashboard_snapshot_alarmas_ocultas(app):
+    from clock_tui.features.alarms.model import Alarm
+
+    app.alarms.alarms = [Alarm(nombre="A", hora=6, minutos=0, status="activado")]
+    app.config["alarmas_mostrar"] = "no ver"
+    snap = app._build_dashboard_snapshot()
+    assert snap.next_alarm is None
+
+
 def test_build_activity_sections_alarmas_ocultas(app):
     from clock_tui.features.alarms.model import Alarm
 

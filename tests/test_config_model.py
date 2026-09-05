@@ -21,19 +21,18 @@ def test_default_config_has_kis():
 
 
 def test_tabs():
-    assert TABS == ["Apariencia", "Reloj", "Clima", "Sonido", "Data", "Sistema"]
+    assert TABS == ["Apariencia", "Reloj", "Clima", "Sonido", "Sistema"]
 
 
-def test_sistema_tab_has_update_check_action():
+def test_sistema_tab_agrupa_backup_y_actualizacion():
     m = _model()
     m.tab_idx = TABS.index("Sistema")
     items = m.visible_items()
-    assert len(items) == 1
-    it = items[0]
-    assert it.key == "update_check_action"
-    assert it.tipo == "action"
-    assert it.opciones == "update_check"
-    assert "actualizacion" in it.label.lower()
+    claves = [it.key for it in items]
+    assert "backup_action" in claves
+    assert "restore_action" in claves
+    assert "update_check_action" in claves
+    assert all(it.tab == "Sistema" for it in items)
 
 
 def test_visible_items_apariencia():
