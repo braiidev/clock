@@ -8,9 +8,11 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from clock_tui.ui.frame import draw_frame
+from clock_tui.ui.frame import content_capacity, draw_frame, scroll_window
 
 from .model import TABS, ConfigModel
+
+_MAX_VISIBLE = 10
 
 
 def render(
@@ -28,24 +30,6 @@ def render(
         return
 
     model.clamp_selected()
-    rows: list[str] = []
-
-    tab_parts = []
-    for i, nombre in enumerate(TABS):
-        tab_parts.append(f"[{nombre}]" if i == model.tab_idx else f" {nombre} ")
-    rows.append(" ".join(tab_parts))
-    rows.append("")
-
-    visibles = model.visible_items()
-    n = len(visibles)
-    if n == 0:
-        rows.append("(sin opciones en esta categoria)")
-    else:
-        for i, it in enumerate(visibles):
-            sel = "\u25ba" if i == model.selected_idx else " "
-            val = model.item_value(it)
-            rows.append(f"{sel} {it.label:26s} [{val}]")
-
     helper = (
         [
             "\u2190\u2192:categor\u00eda  \u2191\u2193:nav  Space/Enter:toggle/ciclar/elegir"
@@ -53,6 +37,36 @@ def render(
         if mostrar_helpers
         else []
     )
+    sh, _ = stdscr.getmaxyx()
+    cap = content_capacity(sh, len(helper))
+    fixed = 2  # tabs + separador
+
+    tab_parts = []
+    for i, nombre in enumerate(TABS):
+        tab_parts.append(f"[{nombre}]" if i == model.tab_idx else f" {nombre} ")
+    rows = [" ".join(tab_parts), ""]
+    if cap < 3:
+        rows.pop()  # apretado: quita el separador
+        fixed = 1
+        if cap < 2:
+            rows[:] = []  # muy apretado: solo items
+            fixed = 0
+
+    visibles = model.visible_items()
+    n = len(visibles)
+    if n == 0:
+        rows.append("(sin opciones en esta categoria)")
+    else:
+        effective = min(_MAX_VISIBLE, max(1, cap - fixed))
+        model.scroll_offset = scroll_window(
+            model.selected_idx, n, effective, model.scroll_offset
+        )
+        for i_rel, it in enumerate(
+            visibles[model.scroll_offset : model.scroll_offset + effective]
+        ):
+            sel = "\u25ba" if model.scroll_offset + i_rel == model.selected_idx else " "
+            val = model.item_value(it)
+            rows.append(f"{sel} {it.label:26s} [{val}]")
 
     draw_frame(
         stdscr,
@@ -61,6 +75,7 @@ def render(
         mostrar_marco=mostrar_marco,
         helper_lines=helper,
         pairs=pairs,
+        bottom_counter=(f"({model.selected_idx + 1}/{n})" if n else None),
     )
 
 

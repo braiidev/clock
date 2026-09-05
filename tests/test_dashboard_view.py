@@ -109,7 +109,7 @@ def test_render_ventana_scroll_seleccion_ultima_visible():
 
     class FakeStdscr:
         def getmaxyx(self):
-            return 8, 60
+            return 12, 80  # altura chica → la ventana no muestra todo
 
         def erase(self):
             pass
@@ -122,6 +122,7 @@ def test_render_ventana_scroll_seleccion_ultima_visible():
 
     def fake_draw_frame(stdscr, title, rows, row_attrs=None, **kw):
         captured["rows"] = list(rows)
+        captured["counter"] = kw.get("bottom_counter")
 
     orig = d_view.draw_frame
     d_view.draw_frame = fake_draw_frame  # type: ignore[assignment]
@@ -138,5 +139,50 @@ def test_render_ventana_scroll_seleccion_ultima_visible():
 
     assert offset > 0  # la selección está fuera de la ventana inicial
     assert any(r.startswith("\u25ba") for r in captured["rows"])
-    assert any("de 4" in r for r in captured["rows"])
+    assert captured["counter"] == "(4/4)"  # va en el borde inferior, no en filas
+    assert all("de 4" not in r for r in captured["rows"])
     assert all("T1" not in r for r in captured["rows"])  # las primeras salen
+
+
+def test_render_una_actividad_muestra_contador_uno_de_uno():
+    from clock_tui.features.dashboard import view as d_view
+
+    snap = DashboardSnapshot(
+        now=datetime.datetime(2025, 6, 16, 14, 5, 9),
+        active_timers=[{"name": "T1", "remaining": 60}],
+        total_tasks=0,
+        done_tasks=0,
+        selected_idx=0,
+    )
+    captured: dict = {}
+
+    class FakeStdscr:
+        def getmaxyx(self):
+            return 24, 80
+
+        def erase(self):
+            pass
+
+        def addstr(self, *a, **kw):
+            pass
+
+        def refresh(self):
+            pass
+
+    def fake_draw_frame(stdscr, title, rows, row_attrs=None, **kw):
+        captured["counter"] = kw.get("bottom_counter")
+
+    orig = d_view.draw_frame
+    d_view.draw_frame = fake_draw_frame  # type: ignore[assignment]
+    try:
+        d_view.render(
+            FakeStdscr(),
+            snap,
+            theme={},
+            pairs={"marco": 1, "texto": 6, "helpers": 2},
+            config={"mostrar_marco": True, "mostrar_helpers": True},
+        )
+    finally:
+        d_view.draw_frame = orig
+
+    assert captured["counter"] == "(1/1)"  # contador siempre, aunque haya 1

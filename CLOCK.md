@@ -538,8 +538,15 @@ Orden de features por complejidad: stopwatch (más simple, valida el patrón), t
 ## 12. Estado de validación (fases 5-6)
 
 Implementación completa del refactor, **milestone v1.0** + self-update **v1.1**
-+ overlay de actividad **v1.2**. Suite: `505` tests (pytest) · pyright 0 errores
++ overlay de actividad **v1.2**. Suite: `509` tests (pytest) · pyright 0 errores
 · black. Monolito original eliminado (`clock.py`).
+
+- **Contador `(n/N)` en el borde inferior (v0.48–v0.49):** todas las listas
+  (alarmas, timers, ToDo, relojes mundiales, picker, cronómetro, Dashboard,
+  Config) muestran `(cursor/total)` sobre el borde inferior del marco, sin
+  robar filas de contenido. Scroll unificado (`scroll_window`): la selección
+  queda siempre visible aunque la terminal sea chica (fix de filas fijas en
+  ToDo/Config/cronómetro que ocultaban la selección).
 
 - **Batch de bugs v0.29–v0.36:** captura de teclas durante la edición (router `capture`), confirmación de borrado (`y/Y/s/S`), reorden con `J/K` (alarmas/timers/WCs), navegación `hjkl` en todas las vistas, próxima alarma del Dashboard calculada por **recurrencia real** (`_next_occurrence`), WCs del Reloj como filas con `►` + ventana de scroll, `wc_mostrar` y `alarmas_mostrar` funcionales (incluyen Dashboard), Config sin tab "Data" (acciones → Sistema) + selector `►` + tema **flatline**.
 

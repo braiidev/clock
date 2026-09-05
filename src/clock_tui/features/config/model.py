@@ -170,6 +170,7 @@ class ConfigModel:
     config: dict[str, Any]
     tab_idx: int = 0
     selected_idx: int = 0
+    scroll_offset: int = 0
     text_edit: bool = False
     text_edit_key: str | None = None
     text_edit_value: str = ""

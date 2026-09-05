@@ -53,25 +53,24 @@ def render(
         else []
     )
     offset = scroll
+    bottom_counter: str | None = None
     if activities:
         fixed_n = len(rows)
-        show_count = len(activities) > 1
-        base = content_capacity(sh, len(helper)) - fixed_n
-        avail = max(1, base - (1 if show_count else 0))
-        offset = scroll_window(snap.selected_idx, len(activities), avail, scroll)
-        visible = activities[offset : offset + avail]
+        avail = max(0, content_capacity(sh, len(helper)) - fixed_n)
+        use_divisor = avail >= 2  # el divisor consume una fila; si no sobra, omitirlo
+        avail_items = avail - (1 if use_divisor else 0)
+        offset = scroll_window(snap.selected_idx, len(activities), avail_items, scroll)
+        visible = activities[offset : offset + avail_items]
         if visible:
-            rows.append("  " + "\u2500" * 20)
-            row_attrs.append(None)
+            if use_divisor:
+                rows.append("  " + "\u2500" * 20)
+                row_attrs.append(None)
             for i_rel, act in enumerate(visible):
                 es_sel = (offset + i_rel) == snap.selected_idx
                 sel = "\u25ba" if es_sel else " "
                 rows.append(f"{sel} {act.label}")
                 row_attrs.append(None)
-        if show_count:
-            shown_end = min(offset + avail, len(activities))
-            rows.append(f"  ({offset + 1}\u2013{shown_end} de {len(activities)})")
-            row_attrs.append(None)
+        bottom_counter = f"({snap.selected_idx + 1}/{len(activities)})"
 
     draw_frame(
         stdscr,
@@ -81,6 +80,7 @@ def render(
         helper_lines=helper,
         row_attrs=row_attrs,
         pairs=pairs,
+        bottom_counter=bottom_counter,
     )
     return offset
 
