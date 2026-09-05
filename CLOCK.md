@@ -236,7 +236,8 @@ Resumen de solo lectura: fecha+hora, clima (coloreado con el par `clima` del tem
 │  Lun 16 Jun  14:32:05                │
 │  ※ Buenos Aires: +12°C  (hace 5m)    │
 │   ________________________________   │
-│  ◷ Próx: Reunión 15:00 ↻L-V (en 28m) │ ← de aqui para abajo seleccionables-navegables
+│  ◷ Próx: Reunión 15:00 ↻L-V (Lun · en 1d 28m) │ ← dia de la ocurrencia; navegables con ↑↓/jk persistiendo
+│  ► BUE -3h 14:32                         │ ← cada WC muestra (local-wc)
 │  ⏱ Timer1  08:22                     │
 │  ▤ 3 tareas pendientes (2/5)         │
 │  💤 1 pospuesta(s)                   │
@@ -253,7 +254,7 @@ Reloj local centrado + gestión de relojes mundiales como **filas navegables** c
 │            [ ◷ Reloj ]               │
 │                                      │
 │     Lun 16 Jun  14:32:05             │
-│  ► BUE 14:32                         │
+│  ► BUE 14:32                         │ (con diff: ► BUE -3h 14:32)
 │    NY 13:32                          │
 │    LON 18:32                         │
 │    (1–4 de 7)                        │
