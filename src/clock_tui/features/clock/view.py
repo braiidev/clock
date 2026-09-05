@@ -96,7 +96,9 @@ def _build_wc_rows(model: ClockModel, pairs: dict[str, int]) -> list[str]:
         wc = model.wc_list[i_abs]
         hhmm = model.wc_time_str(wc.zona)
         sel = "\u25ba" if i_abs == model.wc_idx else " "
-        rows.append(f"{sel} {wc.apodo} {hhmm}")
+        diff = model.wc_local_diff_str(wc.zona)
+        extra = f"{diff} " if diff else ""
+        rows.append(f"{sel} {wc.apodo} {extra}{hhmm}")
     if n > _WC_MAX_VISIBLE:
         shown_end = min(model.wc_scroll + _WC_MAX_VISIBLE, n)
         rows.append(f"  ({model.wc_scroll + 1}\u2013{shown_end} de {n})")

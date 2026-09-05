@@ -176,3 +176,27 @@ def test_wc_diff_str():
     m = _model()
     result = m.wc_diff_str("UTC")
     assert "UTC" in result
+
+
+def test_wc_local_diff_str(monkeypatch):
+    import os
+    import time as t
+
+    old_tz = os.environ.get("TZ")
+    monkeypatch.setenv("TZ", "America/Argentina/Buenos_Aires")
+    t.tzset()
+    try:
+        m = _model()
+        assert m.wc_local_diff_str("UTC") == "(-3h)"
+        assert m.wc_local_diff_str("America/Argentina/Buenos_Aires") == ""
+    finally:
+        if old_tz is not None:
+            os.environ["TZ"] = old_tz
+        else:
+            os.environ.pop("TZ", None)
+        t.tzset()
+
+
+def test_wc_local_diff_str_invalida():
+    m = _model()
+    assert m.wc_local_diff_str("Zona/Inexistente") == ""

@@ -210,3 +210,13 @@ class ClockModel:
         if info is None:
             return ""
         return f" (UTC {_wc_format_diff(info[1])})"
+
+    def wc_local_diff_str(self, iana: str) -> str:
+        """Diferencia local - wc en horas (ej: '-3h', '+2.30h'). Vacío si es 0."""
+        info = _wc_offset_info(iana)
+        if info is None:
+            return ""
+        diff_min = -info[1]
+        if diff_min == 0:
+            return ""
+        return f"({_wc_format_diff(diff_min)}h)"

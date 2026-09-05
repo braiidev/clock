@@ -75,6 +75,20 @@ def test_build_wc_rows_sin_contador_si_no_sobra():
     assert "(1" not in rows[-1]
 
 
+def test_build_wc_rows_incluye_diff_local_wc():
+    m = ClockModel(
+        wc_list=[
+            WorldClock(zona="America/Argentina/Buenos_Aires", apodo="BUE"),
+            WorldClock(zona="Asia/Tokyo", apodo="TYO"),
+        ],
+        wc_idx=0,
+    )
+    rows = c_view._build_wc_rows(m, {})
+    assert rows[0].startswith("\u25ba BUE ")
+    assert "BUE" in rows[0]
+    assert "TYO" in rows[1]
+
+
 def test_wc_mostrar_no_ver_oculta_seccion():
     m = ClockModel(wc_list=_wc(2), wc_idx=0)
 
