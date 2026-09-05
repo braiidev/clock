@@ -868,7 +868,14 @@ class ClockApp:
         sh, sw = self.stdscr.getmaxyx()
         tier = size_tier(sh, sw)
         if tier == "micro":
-            draw_micro(self.stdscr, self._clock_str(), self._pairs["texto"])
+            line1, line2 = self._micro_lines(one_line=sh == 1)
+            draw_micro(
+                self.stdscr,
+                line1,
+                self._pairs["texto"],
+                line2=line2,
+                pair_line2=self._pairs.get("clima", 0),
+            )
         else:
             self._render_view()
             self._render_footer()
@@ -900,6 +907,31 @@ class ClockApp:
             show_seconds=self.config.get("mostrar_segundos", True),
             format_24h=self.config.get("formato_24h", True),
         )
+
+    def _micro_lines(self, *, one_line: bool = False) -> tuple[str, str | None]:
+        """Líneas de la MVP micro según `micro_mostrar` (D20)."""
+        mode = self.config.get("micro_mostrar", "Todo")
+        now = datetime.datetime.now()
+        time_str = self._clock_str()
+        date_str = DashboardSnapshot.format_date(now)
+        weather = self._weather_display_line()
+
+        if mode == "Solo hora":
+            return time_str, None
+        if mode == "Solo clima":
+            return (weather or time_str), None
+
+        fecha_hora = f"{date_str}  {time_str}"
+        if mode == "Fecha y hora":
+            return fecha_hora, None
+
+        # "Todo": fecha+hora y, si hay espacio, el clima debajo.
+        if one_line and weather:
+            _DIAS_UNA_LETRA = "LMXJVSD"
+            dia = _DIAS_UNA_LETRA[now.weekday()]
+            dia_mes = date_str.split(" ", 1)[1] if " " in date_str else date_str
+            return f"({dia}) {dia_mes} | {time_str} | {weather}", None
+        return fecha_hora, weather
 
     def _render_view(self) -> None:
         view = self.router.view_index()

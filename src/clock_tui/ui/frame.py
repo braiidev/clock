@@ -233,12 +233,26 @@ def draw_frame(
     return sy, sx, box_w, tier
 
 
-def draw_micro(stdscr: Any, hora_str: str, pair_texto: int = 0) -> None:
-    """Dibuja la vista micro: reloj centrado sin marco."""
+def draw_micro(
+    stdscr: Any,
+    line1: str,
+    pair_texto: int = 0,
+    line2: str | None = None,
+    pair_line2: int = 0,
+) -> None:
+    """Dibuja la vista micro: 1-2 líneas centradas, sin marco.
+
+    `line2` (p. ej. el clima) se dibuja debajo de `line1` cuando hay al menos
+    2 filas disponibles (las micro vistas — D20).
+    """
     painter = Painter(stdscr)
     painter.stdscr.erase()
     sh, sw = painter.size
-    y = sh // 2
-    x = max(0, (sw - display_width(hora_str)) // 2)
-    painter.safe(y, x, hora_str, pair_texto | curses.A_BOLD)
+    n = 2 if line2 else 1
+    y0 = max(0, (sh - n) // 2)
+    x1 = max(0, (sw - display_width(line1)) // 2)
+    painter.safe(y0, x1, line1, pair_texto | curses.A_BOLD)
+    if line2:
+        x2 = max(0, (sw - display_width(line2)) // 2)
+        painter.safe(y0 + 1, x2, line2, pair_line2)
     painter.stdscr.refresh()

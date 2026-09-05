@@ -649,6 +649,47 @@ def test_render_mini_tier_all_views(app):
         app._render()
 
 
+def test_micro_lines_modos(app):
+    app.config["clima_activo"] = True
+    app.weather.snapshot = lambda: (True, "23°C", 0, 0, None)
+
+    app.config["micro_mostrar"] = "Solo hora"
+    l1, l2 = app._micro_lines()
+    assert l2 is None and ":" in l1
+
+    app.config["micro_mostrar"] = "Solo clima"
+    l1, l2 = app._micro_lines()
+    assert l2 is None and "23°C" in l1
+
+    app.config["micro_mostrar"] = "Fecha y hora"
+    l1, l2 = app._micro_lines()
+    assert l2 is None and ":" in l1
+
+    app.config["micro_mostrar"] = "Todo"
+    l1, l2 = app._micro_lines()
+    assert l2 == "23°C"
+    l1o, l2o = app._micro_lines(one_line=True)
+    assert l2o is None and "23°C" in l1o and "|" in l1o
+
+    app.config["clima_activo"] = False
+    l1, l2 = app._micro_lines()
+    assert l2 is None  # sin clima, "Todo" cae a fecha+hora
+
+
+def test_render_micro_dos_lineas_con_clima(fake_curses):
+    from clock_tui.app.app import ClockApp
+
+    app = ClockApp(_RecStdscr(2, 20))
+    app.config["sonido"] = False
+    app.weather.stop()
+    app.config["clima_activo"] = True
+    app.weather.snapshot = lambda: (True, "23°C", 0, 0, None)
+    app._render()
+    lineas = [s for y, x, s, a in app.stdscr.calls if s]
+    assert any(s == "23°C" for s in lineas)
+    assert any(s.count(":") >= 1 for s in lineas)
+
+
 def test_resize_handler_redraws(app, fake_curses):
     app.stdscr.h, app.stdscr.w = 2, 10
     app.stdscr.cleared = False

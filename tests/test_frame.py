@@ -4,6 +4,7 @@ from clock_tui.ui.frame import (
     content_capacity,
     display_width,
     draw_frame,
+    draw_micro,
     scroll_window,
     truncate_ellipsis,
 )
@@ -183,3 +184,16 @@ def test_draw_frame_full_mantiene_helpers_y_footer():
     )
     assert any(s == "↑↓ navegar" for y, x, s in scr.calls)
     assert any(s == "NORMAL" for y, x, s in scr.calls)
+
+
+def test_draw_micro_dos_lineas():
+    scr = _Rec(2, 20)
+    draw_micro(scr, "14:32:05", 1, line2="23°C")
+    assert (0, 6, "14:32:05") in scr.calls  # x=(20-8)//2
+    assert (1, 8, "23°C") in scr.calls
+
+
+def test_draw_micro_una_linea_centrada_vertical():
+    scr = _Rec(3, 20)
+    draw_micro(scr, "14:32:05", 1)
+    assert (1, 6, "14:32:05") in scr.calls  # (3-1)//2

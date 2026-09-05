@@ -25,6 +25,7 @@ CLIMA_RETRY_MAX = [1, 2, 3, 5]
 CLIMA_RETRY_SEGS = [30, 60, 90, 120]
 WC_MOSTRAR = ["ver", "no ver"]
 ALARMAS_MOSTRAR = ["ver", "no ver"]
+MICRO_MOSTRAR = ["Todo", "Fecha y hora", "Solo hora", "Solo clima"]
 
 
 @dataclass
@@ -57,6 +58,7 @@ def default_config() -> dict[str, Any]:
         "alarma_posponer_min": 5,
         "wc_mostrar": "ver",
         "alarmas_mostrar": "ver",
+        "micro_mostrar": "Todo",
         "world_clocks": [],
         **_set_custom_theme({"make": True}),
     }
@@ -98,6 +100,9 @@ def config_items() -> list[ConfigItem]:
             POSPONER_MIN,
         ),
         ConfigItem("wc_mostrar", "Reloj Mundial", "Reloj", "choice", WC_MOSTRAR),
+        ConfigItem(
+            "micro_mostrar", "Mini vistas (micro)", "Reloj", "choice", MICRO_MOSTRAR
+        ),
         ConfigItem(
             "alarmas_mostrar", "Alarmas en activity", "Reloj", "choice", ALARMAS_MOSTRAR
         ),
