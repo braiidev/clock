@@ -3,6 +3,7 @@
 ## Doing
 
 ## Next
+- [ ] v1.2.18: Sonidos bundled en el paquete — install.sh/--update los copian a ~/.config/clock/sounds (sin pisar) + fallback bundled - v0.46
 
 ## Done
 - [x] v1.2.17: Scroll/truncate normalizado por altura (frame + todos los views + dashboard + overlay <o>) - v0.45

@@ -125,3 +125,33 @@ def test_repo_root_resolves_to_repo_layout():
     root = update.repo_root()
     assert os.path.isdir(os.path.join(root, "src", "clock_tui"))
     assert os.path.isfile(os.path.join(root, "pyproject.toml"))
+
+
+def _repo_con_sonidos(tmp_path) -> str:
+    repo = str(tmp_path / "repo")
+    snd = os.path.join(repo, "src", "clock_tui", "sounds")
+    os.makedirs(snd)
+    for nom, content in [("bell.oga", "beep"), ("galaxy.mp3", "audio")]:
+        with open(os.path.join(snd, nom), "w", encoding="utf-8") as f:
+            f.write(content)
+    return repo
+
+
+def test_sync_sounds_copia_solo_faltantes(tmp_path):
+    repo = _repo_con_sonidos(tmp_path)
+    dest = str(tmp_path / "dest")
+    os.makedirs(dest)
+    with open(os.path.join(dest, "galaxy.mp3"), "w", encoding="utf-8") as f:
+        f.write("custom del usuario")  # NO debe pisarse
+
+    copied = update.sync_sounds(repo, dest)
+
+    with open(os.path.join(dest, "galaxy.mp3"), encoding="utf-8") as f:
+        assert f.read() == "custom del usuario"
+    with open(os.path.join(dest, "bell.oga"), encoding="utf-8") as f:
+        assert f.read() == "beep"
+    assert copied == 1
+
+
+def test_sync_sounds_sin_carpeta_devuelve_cero(tmp_path):
+    assert update.sync_sounds(str(tmp_path), str(tmp_path / "nada")) == 0

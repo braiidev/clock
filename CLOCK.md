@@ -374,7 +374,7 @@ Categorías:
 
 > **Nota:** `badge_modo` quedó **eliminado** (fue reemplazado por el overlay de actividad `<o>`).
 
-Tipos de item: `bool` (toggle ✔/✘), `choice` (cicla), `text` (editor inline), `soundfile` (cicla archivos de `~/.config/clock/sounds/`), `soundbrowser` (abre browser), `soundmode` (cicla default↔custom), `action` (ejecuta).
+Tipos de item: `bool` (toggle ✔/✘), `choice` (cicla), `text` (editor inline), `soundfile` (cicla archivos de `~/.config/clock/sounds/` — o de los bundled si la carpeta no existe), `soundbrowser` (abre browser), `soundmode` (cicla default↔custom), `action` (ejecuta).
 
 Items condicionales:
 - `custom_color_*` solo si tema = "custom".
@@ -414,7 +414,7 @@ Items condicionales:
 Thread background con loop de fetch. Cache en memoria + persistencia (`weather_cache` en data.json). Reintentos (`clima_retry_max`, `clima_retry_segs`), intervalo configurable (`clima_intervalo_min`), fuerza refresh con `u`. API: wttr.in con `%l:+%t`.
 
 ### Audio (`services/audio.py`)
-Fallback chain: `ffplay` → `paplay` → `aplay` → `curses.beep()` → `\a` stderr. Subprocess no-bloqueante. Loop mientras el Alert está activo. Respeta config de sonido. Carpeta: `~/.config/clock/sounds/`.
+Fallback chain: `ffplay` → `paplay` → `aplay` → `curses.beep()` → `\a` stderr. Subprocess no-bloqueante. Loop mientras el Alert está activo. Respeta config de sonido. Carpeta de audios: `~/.config/clock/sounds/` (los sonidos **bundled** viven en `src/clock_tui/sounds/` del paquete; si la carpeta del usuario no existe, se usa la bundled como fallback).
 
 ### Persistencia (`core/store.py`)
 JSON en `~/.config/clock/data.json`. Thread-safe con `threading.Lock`. Escritura atómica (temp + `os.replace`). Version `7`. Carga al iniciar, guarda en cada mutación. **Migración automática:** si existe `clock_data.json` v6 (formato anterior), migrar a `data.json` v7 al iniciar. Backup/restore en `services/backup.py`.
@@ -567,7 +567,7 @@ Instala **sin sudo** en `~`:
 | Comando `clock` | `~/.local/bin/clock` (symlink al venv) |
 | Datos personales (intactos) | `~/.config/clock/` (data.json v7, sonidos, log) |
 
-El dataset vive en `~/.config/clock/`; el instalador **nunca lo toca**. Si `~/.local/bin` no está en tu PATH, el script lo avisa.
+El dataset vive en `~/.config/clock/`; el instalador **no toca datos personales**: solo agrega los **sonidos bundled** que falten en `~/.config/clock/sounds/` (nunca pisa ni borra los que ya existan). Si `~/.local/bin` no está en tu PATH, el script lo avisa.
 
 ### Actualizar
 - **Manual:** `clock --update` (hace `git fetch` + `git pull --ff-only`; si el historial divergió, `reset --hard origin/main`).

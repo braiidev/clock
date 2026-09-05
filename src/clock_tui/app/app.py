@@ -57,6 +57,7 @@ from clock_tui.features.todo import TodoController, TodoModel, todo_is_done
 from clock_tui.services import weather as weather_service
 from clock_tui.services.audio import (
     _SOUND_EXTS,
+    _bundled_sounds_dir,
     AudioPlayer,
     resolve_sound_path,
     try_beep,
@@ -484,7 +485,10 @@ class ClockApp:
         self._audio_player.start_loop(path)
 
     def _audios_dir(self) -> str:
-        return os.path.join(store_mod.CONFIG_DIR, "sounds")
+        d = os.path.join(store_mod.CONFIG_DIR, "sounds")
+        if not os.path.isdir(d):
+            d = _bundled_sounds_dir()
+        return d
 
     def _dismiss_alert(self) -> None:
         ref = (self._alert or {}).get("alarm_ref")

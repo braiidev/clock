@@ -12,6 +12,7 @@ el contador de tasks (v0.N) y el semver de producto (v1.y.z en pyproject).
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import sys
 import threading
@@ -19,6 +20,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from . import __version__
+from .core.store import CONFIG_DIR
 
 GIT_TIMEOUT = 8
 PULL_TIMEOUT = 30
@@ -107,10 +109,12 @@ def do_update(repo: str) -> UpdateResult:
         pull = _git(repo, ["pull", "--ff-only"], timeout=PULL_TIMEOUT)
         if pull.returncode == 0:
             _pip_reinstall(repo)
+            sync_sounds(repo)
             return UpdateResult(True, f"Actualizado a {info.available} — reiniciá")
         reset = _git(repo, ["reset", "--hard", "origin/main"], timeout=15)
         if reset.returncode == 0:
             _pip_reinstall(repo)
+            sync_sounds(repo)
             return UpdateResult(
                 True, f"Actualizado a {info.available} (historial corregido) — reiniciá"
             )
@@ -131,6 +135,33 @@ def _pip_reinstall(repo: str) -> None:
         pass
 
 
+def sync_sounds(repo: str, dest: str | None = None) -> int:
+    """Copia los sonidos empaquetados del repo a la carpeta de audios del usuario.
+
+    Solo agrega archivos que falten (nunca pisa los que el usuario ya tenga,
+    para que sus personalizaciones sobrevivan a cada actualización). Devuelve
+    la cantidad de archivos copiados.
+    """
+    src = os.path.join(repo, "src", "clock_tui", "sounds")
+    if not os.path.isdir(src):
+        return 0
+    target = dest or os.path.join(CONFIG_DIR, "sounds")
+    os.makedirs(target, exist_ok=True)
+    copied = 0
+    for name in os.listdir(src):
+        src_file = os.path.join(src, name)
+        if not os.path.isfile(src_file):
+            continue
+        dst_file = os.path.join(target, name)
+        if not os.path.exists(dst_file):
+            try:
+                shutil.copy2(src_file, dst_file)
+                copied += 1
+            except OSError:
+                pass
+    return copied
+
+
 def is_auto_update_enabled() -> bool:
     return os.environ.get("CLOCK_NO_AUTO_UPDATE", "0").lower() not in (
         "1",
@@ -147,4 +178,5 @@ __all__ = [
     "do_update",
     "is_auto_update_enabled",
     "repo_root",
+    "sync_sounds",
 ]

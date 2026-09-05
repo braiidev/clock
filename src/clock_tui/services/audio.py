@@ -24,6 +24,13 @@ _BEEP_SOUNDS = [
 _SOUND_EXTS = (".wav", ".oga", ".ogg", ".mp3")
 
 
+def _bundled_sounds_dir() -> str:
+    """Carpeta de sonidos empaquetados dentro del paquete (src/clock_tui/sounds)."""
+    return os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "sounds"
+    )
+
+
 def try_beep(sound_path: str | None = None) -> subprocess.Popen | None:
     """Reproduce un sonido con la mejor herramienta disponible.
 

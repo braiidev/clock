@@ -11,7 +11,7 @@ import traceback
 from clock_tui import __version__
 from clock_tui.app.app import ClockApp
 from clock_tui.core.log import LOG_FILE, _log_error
-from clock_tui.update import check_update, do_update, repo_root
+from clock_tui.update import check_update, do_update, repo_root, sync_sounds
 
 BIN_DIR = os.path.join(os.path.expanduser("~"), ".local", "bin")
 BIN_PATH = os.path.join(BIN_DIR, "clock")
@@ -111,6 +111,9 @@ def main() -> None:
         return
 
     try:
+        sync_sounds(
+            repo_root()
+        )  # asegura los sonidos bundled en ~/.config/clock/sounds
         curses.wrapper(lambda stdscr: ClockApp(stdscr).run())
     except Exception as e:
         _log_error(f"Crash no manejado: {e}", traceback.format_exc())

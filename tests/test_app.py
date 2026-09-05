@@ -426,6 +426,20 @@ def test_command_sound_cycle(app, tmp_path, monkeypatch):
     assert app.config["sonido_archivo"] == "b.wav"
 
 
+def test_audios_dir_fallback_a_bundled(app, tmp_path, monkeypatch):
+    from clock_tui.services.audio import _bundled_sounds_dir
+
+    import clock_tui.core.store as store_mod
+
+    monkeypatch.setattr(store_mod, "CONFIG_DIR", str(tmp_path / "noconfig"))
+    assert app._audios_dir() == _bundled_sounds_dir()
+
+    config_snd = tmp_path / "sounds"
+    config_snd.mkdir()
+    monkeypatch.setattr(store_mod, "CONFIG_DIR", str(tmp_path))
+    assert app._audios_dir() == str(config_snd)
+
+
 def test_browser_esc_closes_at_root(app):
     app._browser = {"mode": "restore", "cwd": "/", "idx": 0, "entries": []}
     app._handle_browser_key(27)

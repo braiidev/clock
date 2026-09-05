@@ -15,3 +15,6 @@ clock-tui = "clock_tui.main:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+clock_tui = ["sounds/*.ogg", "sounds/*.oga", "sounds/*.mp3", "sounds/*.wav"]

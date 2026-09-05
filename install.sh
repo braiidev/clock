@@ -37,6 +37,25 @@ python3 -m venv "$TARGET/.venv"
 "$TARGET/.venv/bin/pip" install --quiet --upgrade pip
 "$TARGET/.venv/bin/pip" install --quiet -e "$TARGET"
 
+# ── Sonidos empaquetados → ~/.config/clock/sounds (sin pisar los existentes) ──
+SRC_SOUNDS="$TARGET/src/clock_tui/sounds"
+DEST_SOUNDS="$HOME/.config/clock/sounds"
+if [ -d "$SRC_SOUNDS" ]; then
+    mkdir -p "$DEST_SOUNDS"
+    copied=0
+    for f in "$SRC_SOUNDS"/*; do
+        [ -e "$f" ] || continue
+        b="$(basename "$f")"
+        if [ ! -e "$DEST_SOUNDS/$b" ]; then
+            cp "$f" "$DEST_SOUNDS/"
+            copied=$((copied + 1))
+        fi
+    done
+    if [ "$copied" -gt 0 ]; then
+        echo "  ↳ sonidos instalados en $DEST_SOUNDS ($copied agregado(s))"
+    fi
+fi
+
 # ── Ejecutable ──
 mkdir -p "$HOME/.local/bin"
 ln -sf "$TARGET/.venv/bin/clock" "$BIN"
