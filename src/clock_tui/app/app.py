@@ -96,6 +96,7 @@ class ClockApp:
     def __init__(self, stdscr: Any) -> None:
         self.stdscr = stdscr
         self.router = Router()
+        self._dash_sel = 0
 
         # Servicio de clima (thread en background).
         self.weather = weather_service.WeatherService(
@@ -349,6 +350,7 @@ class ClockApp:
             self._handle_command(str(command))
 
     def _handle_jump(self, view: int, idx: int) -> None:
+        self._dash_sel = 0
         self.router.goto_view(view)
         if view == VIEW_ALARMS and self.alarms.alarms:
             self.alarms.selected_idx = min(idx, len(self.alarms.alarms) - 1)
@@ -747,8 +749,10 @@ class ClockApp:
 
     def _dispatch(self, view: int, key: int) -> object:
         if view == VIEW_DASHBOARD:
-            snap = self._build_dashboard_snapshot()
-            return DashboardController().handle(snap, key, {})
+            snap = self._build_dashboard_snapshot(selected_idx=self._dash_sel)
+            result = DashboardController().handle(snap, key, {})
+            self._dash_sel = snap.selected_idx
+            return result
         if view == VIEW_CLOCK:
             return ClockController().handle(self.clock, key, {})
         if view == VIEW_ALARMS:
@@ -765,7 +769,7 @@ class ClockApp:
 
     # ── Snapshot dashboard ──
 
-    def _build_dashboard_snapshot(self) -> DashboardSnapshot:
+    def _build_dashboard_snapshot(self, selected_idx: int = 0) -> DashboardSnapshot:
         mostrar_alarmas = self.config.get("alarmas_mostrar", "ver") != "no ver"
         return DashboardSnapshot(
             now=datetime.datetime.now(),
@@ -773,6 +777,7 @@ class ClockApp:
             format_24h=self.config.get("formato_24h", True),
             weather_line=self._weather_display_line(),
             next_alarm=self._next_alarm_data() if mostrar_alarmas else None,
+            selected_idx=selected_idx,
             active_timers=[
                 {"name": t.name, "remaining": t.remaining, "idx": i}
                 for i, t in enumerate(self.timers.timers)
@@ -896,7 +901,7 @@ class ClockApp:
 
             d_view.render(
                 self.stdscr,
-                self._build_dashboard_snapshot(),
+                self._build_dashboard_snapshot(selected_idx=self._dash_sel),
                 theme={},
                 pairs=pairs,
                 config=cfg,

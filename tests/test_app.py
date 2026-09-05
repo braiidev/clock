@@ -816,6 +816,33 @@ def test_dashboard_snapshot_alarmas_ocultas(app):
     assert snap.next_alarm is None
 
 
+def test_dashboard_nav_persiste_entre_dispatches(app):
+    from clock_tui.features.timers.model import Timer
+
+    app.timers.timers = [
+        Timer(name="T1", time=[0, 10, 0], active=True),
+        Timer(name="T2", time=[0, 20, 0], active=True),
+    ]
+    from clock_tui.app.router import VIEW_DASHBOARD
+    from clock_tui.features.dashboard.controller import DashboardController
+
+    for _ in range(3):
+        app._dispatch(VIEW_DASHBOARD, ord("j"))
+    n = len(app._build_dashboard_snapshot().activities)
+    assert app._dash_sel == min(3, max(0, n - 1))
+    app._dispatch(VIEW_DASHBOARD, ord("k"))
+    app._dispatch(VIEW_DASHBOARD, ord("k"))
+    assert app._dash_sel == max(0, min(3, max(0, n - 1)) - 2)
+
+
+def test_dashboard_jump_resetea_seleccion(app):
+    from clock_tui.app.router import VIEW_TIMERS
+
+    app._dash_sel = 2
+    app._handle_jump(VIEW_TIMERS, 0)
+    assert app._dash_sel == 0
+
+
 def test_build_activity_sections_alarmas_ocultas(app):
     from clock_tui.features.alarms.model import Alarm
 
