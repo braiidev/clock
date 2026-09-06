@@ -958,7 +958,7 @@ class ClockApp:
             _DIAS_UNA_LETRA = "LMXJVSD"
             dia = _DIAS_UNA_LETRA[now.weekday()]
             dia_mes = date_str.split(" ", 1)[1] if " " in date_str else date_str
-            return f"({dia}) {dia_mes} | {time_str} | {weather}", None
+            return f"{dia} {dia_mes}, {time_str} | {weather}", None
         return fecha_hora, weather
 
     def _render_view(self) -> None:
