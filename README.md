@@ -60,4 +60,4 @@ clock --version         # versión instalada (1.2.0)
 | Sonidos custom | `~/.config/clock/sounds/` |
 | Versión de datos | v7 (migración automática desde el formato viejo) |
 
-Requiere **Python ≥ 3.9** y `git` solo para instalar/actualizar.
+Requiere `git` solo para instalar/actualizar. El instalador elige el `python3.X` versionado más nuevo disponible entre **3.10 y 3.14**, así que sobrevive a los upgrades de Ubuntu. Detalle de por qué en [CLOCK.md](CLOCK.md#por-qué-el-venv-usa-una-ruta-versionada-del-intérprete).

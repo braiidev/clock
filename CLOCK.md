@@ -582,10 +582,20 @@ Instala **sin sudo** en `~`:
 |---|---|
 | Código (clone git) | `~/.local/share/clock-tui/` |
 | Entorno virtual | `~/.local/share/clock-tui/.venv/` |
-| Comando `clock` | `~/.local/bin/clock` (symlink al venv) |
+| Intérprete pineado | `~/.local/share/clock-tui/.pinned-python` |
+| Comando `clock` | `~/.local/bin/clock` (wrapper con health-check, no symlink) |
 | Datos personales (intactos) | `~/.config/clock/` (data.json v7, sonidos, log) |
 
-El dataset vive en `~/.config/clock/`; el instalador **no toca datos personales**: solo agrega los **sonidos bundled** que falten en `~/.config/clock/sounds/` (nunca pisa ni borra los que ya existan). Si `~/.local/bin` no está en tu PATH, el script lo avisa.
+El dataset vive en `~/.config/clock/`; el instalador **no toca datos personales**: solo agrega los **sonidos bundled** que falten en `~/.config/clock/sounds/` (nunca pisa ni borra los que ya existan). Si `~/.local/bin` no está en tu PATH, el script lo agrega al rc de tu shell (detecta zsh vs bash).
+
+#### Por qué el venv usa una ruta versionada del intérprete
+`python3 -m venv` graba `.venv/bin/python3 -> /usr/bin/python3`. Ese symlink flotante **siempre** resuelve a la última versión de Python instalada, así que al actualizar el SO el venv queda con el layout de una versión ejecutando el intérprete de otra: el install editable se vuelve invisible y clock muere con `ModuleNotFoundError: clock_tui`. El instalador evita eso creando el venv con la **ruta versionada** (`/usr/bin/python3.14 -m venv`) y guardándola en `.pinned-python`, para que las corridas siguientes no se desvíen.
+
+Por eso `~/.local/bin/clock` es un **wrapper** y no un symlink al venv: valida el entorno antes de arrancar y, si está roto, dice qué pasó y con qué comando se arregla. Con un symlink, cuando el venv se rompía tampoco se podía ni correr `clock --update` para repararlo.
+
+`install.sh` es **idempotente y auto-reparador**: si el venv no responde, o corre un intérprete distinto al pineado, o el paquete no se importa, lo recrea solo. Al final corre `clock --version` como smoke test y sale con error en vez de declarar éxito.
+
+Overrides pensados para tests: `CLOCK_TUI_DIR`, `CLOCK_TUI_BIN`, `CLOCK_TUI_RC`.
 
 ### Actualizar
 - **Manual:** `clock --update` (hace `git fetch` + `git pull --ff-only`; si el historial divergió, `reset --hard origin/main`).

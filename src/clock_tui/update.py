@@ -25,12 +25,51 @@ from .core.store import CONFIG_DIR
 GIT_TIMEOUT = 8
 PULL_TIMEOUT = 30
 
+# Nombre del archivo donde install.sh persiste la ruta versionada del intérprete
+# con la que se creó el venv. Ver install.sh para el porqué (symlink flotante).
+PINNED_FILE = ".pinned-python"
+
 _lock = threading.Lock()
 
 
 def repo_root() -> str:
     """Raíz del repo git que contiene este paquete (install desde clone)."""
     return str(Path(__file__).resolve().parents[2])
+
+
+def pinned_python(repo: str | None = None) -> str | None:
+    """Ruta del intérprete pineado por install.sh, o None si no hay pin."""
+    try:
+        raw = (Path(repo or repo_root()) / PINNED_FILE).read_text().strip()
+    except OSError:
+        return None
+    return raw or None
+
+
+def sync_pinned_python(repo: str | None = None, exe: str | None = None) -> str | None:
+    """Realinea `.pinned-python` con el intérprete que realmente está corriendo.
+
+    El pin existe para que install.sh no se desvíe a otra versión en la próxima
+    corrida. Si el venv se rehizo a mano (o install.sh corrió en otra máquina),
+    el pin queda mintiendo y eso termina en el mismo ModuleNotFoundError del
+    upgrade de SO. Devuelve el valor anterior si hubo que corregirlo, None si
+    ya estaba bien o si el layout es inesperado (preferimos no escribir antes
+    que dejar un pin basura).
+    """
+    base = Path(repo or repo_root())
+    candidate = os.path.realpath(exe or sys.executable)
+    if not os.path.basename(candidate).startswith("python3"):
+        return None
+    if str(Path(sys.prefix).resolve()) in candidate:
+        return None  # venv con --copies: no sirve como pin
+    old = pinned_python(str(base))
+    if old == candidate:
+        return None
+    try:
+        (base / PINNED_FILE).write_text(candidate + "\n")
+    except OSError:
+        return None
+    return old or "(ninguno)"
 
 
 def _git(
@@ -105,16 +144,25 @@ def do_update(repo: str) -> UpdateResult:
         if not info.ok:
             return UpdateResult(False, f"No se pudo verificar: {info.error}")
         if info.behind == 0:
+            stale = sync_pinned_python(repo)
+            if stale:
+                return UpdateResult(
+                    True,
+                    f"Estás al día ({info.current}) — intérprete pineado corregido "
+                    f"(era {stale})",
+                )
             return UpdateResult(True, f"Estás al día ({info.current})")
         pull = _git(repo, ["pull", "--ff-only"], timeout=PULL_TIMEOUT)
         if pull.returncode == 0:
             _pip_reinstall(repo)
             sync_sounds(repo)
+            sync_pinned_python(repo)
             return UpdateResult(True, f"Actualizado a {info.available} — reiniciá")
         reset = _git(repo, ["reset", "--hard", "origin/main"], timeout=15)
         if reset.returncode == 0:
             _pip_reinstall(repo)
             sync_sounds(repo)
+            sync_pinned_python(repo)
             return UpdateResult(
                 True, f"Actualizado a {info.available} (historial corregido) — reiniciá"
             )
@@ -177,6 +225,8 @@ __all__ = [
     "check_update",
     "do_update",
     "is_auto_update_enabled",
+    "pinned_python",
     "repo_root",
+    "sync_pinned_python",
     "sync_sounds",
 ]

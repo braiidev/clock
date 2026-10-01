@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
+import sys
 
 import pytest
 
@@ -155,3 +156,79 @@ def test_sync_sounds_copia_solo_faltantes(tmp_path):
 
 def test_sync_sounds_sin_carpeta_devuelve_cero(tmp_path):
     assert update.sync_sounds(str(tmp_path), str(tmp_path / "nada")) == 0
+
+
+# ── .pinned-python ──
+# El pin existe porque `python3 -m venv` deja .venv/bin/python3 -> /usr/bin/python3
+# (symlink flotante). Al subir el SO el venv queda con layout de una versión e
+# intérprete de otra y clock muere con ModuleNotFoundError. install.sh guarda acá
+# la ruta versionada con la que se creó el venv para no desviarse en la próxima.
+
+
+def _fake_interp(tmp_path, name: str = "python3.14") -> str:
+    """Intérprete falso pero ejecutable, para no depender del SO en el test."""
+    d = tmp_path / "interps"
+    d.mkdir(exist_ok=True)
+    p = d / name
+    p.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    p.chmod(0o755)
+    return str(p)
+
+
+def test_pinned_python_sin_archivo_devuelve_none(tmp_path):
+    assert update.pinned_python(str(tmp_path)) is None
+
+
+def test_pinned_python_lee_el_archivo(tmp_path):
+    (tmp_path / update.PINNED_FILE).write_text("/usr/bin/python3.14\n")
+    assert update.pinned_python(str(tmp_path)) == "/usr/bin/python3.14"
+
+
+def test_pinned_python_archivo_vacio_devuelve_none(tmp_path):
+    (tmp_path / update.PINNED_FILE).write_text("   \n")
+    assert update.pinned_python(str(tmp_path)) is None
+
+
+def test_sync_pinned_escribe_cuando_no_hay_pin(tmp_path):
+    exe = _fake_interp(tmp_path)
+    viejo = update.sync_pinned_python(str(tmp_path), exe)
+    assert viejo == "(ninguno)"
+    assert update.pinned_python(str(tmp_path)) == str(
+        tmp_path / "interps" / "python3.14"
+    )
+
+
+def test_sync_pinned_no_toca_si_ya_es_el_mismo(tmp_path):
+    exe = _fake_interp(tmp_path)
+    update.sync_pinned_python(str(tmp_path), exe)
+    assert update.sync_pinned_python(str(tmp_path), exe) is None
+
+
+def test_sync_pinned_corrige_pin_desfasado(tmp_path):
+    """El caso del upgrade de SO: el pin apunta a una versión que ya no existe."""
+    (tmp_path / update.PINNED_FILE).write_text("/usr/bin/python3.12-QUE-NO-EXISTE\n")
+    exe = _fake_interp(tmp_path, "python3.14")
+    viejo = update.sync_pinned_python(str(tmp_path), exe)
+    assert viejo == "/usr/bin/python3.12-QUE-NO-EXISTE"
+    assert update.pinned_python(str(tmp_path)) == str(
+        tmp_path / "interps" / "python3.14"
+    )
+
+
+def test_sync_pinned_rechaza_ejecutable_inesperado(tmp_path):
+    """Con layout raro preferimos no escribir antes que dejar un pin basura."""
+    exe = _fake_interp(tmp_path, "python-real")
+    assert update.sync_pinned_python(str(tmp_path), exe) is None
+    assert update.pinned_python(str(tmp_path)) is None
+
+
+def test_sync_pinned_rechaza_interprete_dentro_del_venv(tmp_path, monkeypatch):
+    """venv creado con --copies: realpath cae adentro y no sirve como pin."""
+    venv = tmp_path / "venv"
+    exe = venv / "bin" / "python3.14"
+    exe.parent.mkdir(parents=True)
+    exe.write_text("#!/bin/sh\n", encoding="utf-8")
+    exe.chmod(0o755)
+    monkeypatch.setattr(sys, "prefix", str(venv))
+    assert update.sync_pinned_python(str(tmp_path), str(exe)) is None
+    assert update.pinned_python(str(tmp_path)) is None

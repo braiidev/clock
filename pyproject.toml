@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "clock-tui"
 version = "1.2.0"
 description = "Dashboard TUI en curses: reloj, clima, alarmas, timers, cronómetro, tareas y configuración."
-requires-python = ">=3.9"
+requires-python = ">=3.10,<3.15"
 dependencies = []
 
 [project.scripts]

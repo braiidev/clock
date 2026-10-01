@@ -1,11 +1,12 @@
 # TODO
 
 ## Doing
-*(vacío — esperando OK para arrancar el batch FIX Python 3.14)*
+*(vacío — batch FIX Python 3.14 cerrado)*
 
 ## Next
+- [ ] v1.2.26 fix: `test_footer_oculto_si_no_cabe_o_config_off` falla en `tests/test_app.py:189` — roto desde el commit `v0.55 style: micro una linea` (no está en el Done de abajo). No lo toqué: ajeno al batch FIX
 
-### 🔧 FIX — install.sh sobrevive al upgrade a Ubuntu 26.04 (Python 3.14)
+### 🔧 FIX — install.sh sobrevive al upgrade a Ubuntu 26.04 (Python 3.14) — CERRADO v0.56
 
 **Síntoma:** en la máquina `.38` (actualizada 24.04 → 26.04) `clock` dejó de arrancar.
 
@@ -40,15 +41,21 @@ en un archivo** para que `--update` sepa qué validar. Justificación: clock tie
 puede romper y no compra nada (0 MB, sin red para el intérprete). Cuando `/usr/bin/python3` pase a
 3.15, `/usr/bin/python3.14` sigue existiendo y el venv sigue funcionando.
 
-- [ ] v0.56: acota `requires-python` de `>=3.9` a `>=3.10,<3.15` (el rango abierto no impedía que un install tomara 3.14). **Sin** `uv.lock`: sin deps no hay nada que resolver
-- [ ] v0.57: install.sh — resolver el `/usr/bin/python3.X` versionado más nuevo dentro del rango y **persistirlo en `.pinned-python`**. Sin ese archivo, el venv se recrea contra un intérprete distinto al que se creó
-- [ ] v0.58: install.sh — recrear el venv invocado con la ruta versionada (`"$PY" -m venv`), nunca con `python3`. Auto-reparar si `.venv/bin/python` no responde o su versión ≠ la pineada
-- [ ] v0.59: wrapper `~/.local/bin/clock` en vez de symlink — valida venv + versión pineada, y si está roto repara o imprime el comando exacto. Cierra el agujero de "el comando mismo está muerto"
-- [ ] v0.60: `update.py` — `do_update()` valida la versión pineada y reconstruye el venv si el SO\subió de minor; `_pip_reinstall()` sigue usando `sys.executable -m pip` (el venv se crea con pip, no con `--seed`)
-- [ ] v0.61: smoke test final (`clock --version`) con salida ≠ 0 si falla + append idempotente de `~/.local/bin` al PATH (hoy solo avisa y nunca escribe)
-- [ ] v0.62: regenerar `~/Dev/Clock/.venv` stale (su `pyvenv.cfg` graba `command = .../Dev/_scripts/Clock/.venv`, path que ya no existe) + test del escenario real (venv con intérprete flotante → se detecta y repara) + CLOCK.md/README
+- [x] v0.56: `requires-python` de `>=3.9` a `>=3.10,<3.15` (el rango abierto no impedía que un install tomara 3.14). **Sin** `uv.lock`: sin deps no hay nada que resolver
+- [x] v0.57: install.sh — resolver el `/usr/bin/python3.X` versionado más nuevo del rango y **persistirlo en `.pinned-python`**. Se reescribe siempre: si el pineado murió, se realinea al nuevo
+- [x] v0.58: install.sh — recrear el venv invocado con la ruta versionada (`"$PY" -m venv`), nunca con `python3`. Auto-repara si `.venv/bin/python` no responde, si su `realpath` ≠ el pin, o si `import clock_tui` falla
+- [x] v0.59: wrapper `~/.local/bin/clock` en vez de symlink — dos guards (intérprete muerto / editable invisible) y mensaje con el comando exacto de reparación. `prepare_bin` con marcador: respalda binarios ajenos y reemplaza symlinks viejos. `ensure_path` al rc correcto (zsh vs bash) e idempotente
+- [x] v0.60: `update.py` — `pinned_python(repo)` y `sync_pinned_python(repo, exe)` parametrizadas para test; `do_update` las invoca con `repo`. `_pip_reinstall()` intacto (el venv se crea con pip)
+- [x] v0.61: smoke test final (`clock --version`) con salida ≠ 0 si falla. Overrides `CLOCK_TUI_DIR` / `CLOCK_TUI_BIN` / `CLOCK_TUI_RC` para testear sin tocar el HOME real
+- [x] v0.62: `.pinned-python` al `.gitignore` + 8 tests del pin + `~/Dev/Clock/.venv` regenerado con intérprete versionado (el viejo quedó en `.venv.stale-20261001/`; su `pyvenv.cfg` apuntaba a `Dev/_scripts/Clock/.venv`, ruta inexistente) + CLOCK.md/README
 
-**Entrega:** un solo commit (v0.56-v0.62 unificados) + `git tag v0.56`, con este bloque como registro.
+**Entrega:** un commit (v0.56-v0.62 unificados) + `git tag v0.56`, con este bloque como registro.
+
+**Dos bugs que aparecieron al testear el escenario de rompimiento real** (invisibles leyendo el código):
+1. `venv_ok` comparaba la versión (`3.12`) contra el pin, que guarda una **ruta** (`/usr/bin/python3.12`) → nunca coincidían y el install caía siempre en "recrear". Canonizado todo a `realpath`.
+2. El pin **nunca se reescribía**: tras recrear el venv con otro intérprete, `venv_ok` comparaba contra el pin viejo y daba falso negativo, dejando el install en error aunque el venv estuviera sano.
+
+**Verificación:** `pytest` → 533 passed, 1 failed (preexistente, ver `Next`). End-to-end en HOME aislado: install sano → layout roto → el wrapper avisa con el comando exacto → `install.sh` repara solo → `--uninstall` borra wrapper y código conservando los datos. Idempotente en la segunda corrida.
 
 **No tocar:** `sync_sounds()` sigue copiando a `~/.config/clock/sounds` sin pisar; `--uninstall` sigue
 funcionando (`os.unlink` borra igual symlink o archivo regular, y `repo_root()` resuelve al mismo dir).
