@@ -141,8 +141,18 @@ create_venv() {
 }
 
 # ~/.local/bin/clock deja de ser un symlink al venv y pasa a ser un wrapper con
-# health-check: si el venv está roto lo dice con el comando exacto de reparación,
-# en vez de dejar el comando muerto sin salida.
+# health-check Y auto-reparación.
+#
+# Por qué puede repararse solo: este script es bash, no Python. No necesita el
+# venv para correr, así que puede ejecutar install.sh (que solo usa git y un
+# /usr/bin/python3.X del sistema) aunque el venv esté muerto. Ese es
+# exactamente el caso del upgrade de SO que lo dejaba sin salida: cuando el venv
+# cuelga de una versión que el SO borró, `clock --update` tampoco puede correr,
+# porque el comando que lo haría está muerto. Antes de este fix lo único que
+# quedaba era copiar la línea de curl a mano.
+#
+# El fallback sigue siendo install.sh: si la reparación automática falla, el
+# mensaje dice qué ejecutar.
 write_wrapper() {
     mkdir -p "$(dirname "$BIN")"
     cat >"$BIN" <<EOF
@@ -153,13 +163,52 @@ set -uo pipefail
 VENV="$VENV"
 PINNED="$PINNED"
 DEST="$TARGET"
+REPAIR="curl -fsSL $RAW_INSTALL | bash"
 
+# Los argumentos del comando se guardan aparte porque dentro de repair() "\$@"
+# son los de la función (vacíos), no los del wrapper: sin esto el relanzamiento
+# perdía --version y entraba directo a la TUI.
+ARGS=("\$@")
+[ "\${#ARGS[@]}" -gt 0 ] || ARGS=()
+
+# Intenta reconstruir el entorno con el install.sh que ya está en el repo. Es
+# bash puro, así que funciona aunque el venv no exista. Se auto-limita a un
+# intento por invocación para no quedar en loop si install.sh no lo logra.
+repair() {
+    local n="\${CLOCK_REPAIR_ATTEMPT:-0}"
+    if [ "\$n" -ge 1 ]; then
+        return 1
+    fi
+    if [ ! -f "\$DEST/install.sh" ]; then
+        return 1
+    fi
+    if ! command -v git >/dev/null 2>&1; then
+        return 1
+    fi
+    echo "clock: el entorno virtual no sirve. Reparando..." >&2
+    if ! CLOCK_TUI_DIR="\$DEST" CLOCK_REPAIR_ATTEMPT=1 bash "\$DEST/install.sh" >&2; then
+        echo "clock: la reparación automática falló." >&2
+        return 1
+    fi
+    # install.sh acaba de REESCRIBIR este mismo archivo. Bash lee los scripts por
+    # partes y no vuelve atrás, así que seguir executing acá leería basura del
+    # archivo viejo. Hay que releer el wrapper nuevo desde \$0.
+    #
+    # CLOCK_REPAIR_ATTEMPT=1 evita el loop: si el wrapper recién escrito sigue
+    # sin encontrar venv, esta segunda pasada no repara y cae al mensaje final.
+    CLOCK_REPAIR_ATTEMPT=1 exec bash "\$0" "\${ARGS[@]}"
+}
+
+# El venv no responde (interprete borrado por un upgrade del SO, o venv roto).
 if [ ! -x "\$VENV/bin/python" ] || ! "\$VENV/bin/python" -c '' >/dev/null 2>&1; then
     echo "clock: el entorno virtual está roto — \$VENV/bin/python no responde." >&2
     if [ -f "\$PINNED" ]; then
         echo "  intérprete pineado: \$(cat "\$PINNED") (ya no existe o no es ejecutable)" >&2
     fi
-    echo "  Reparalo con:  curl -fsSL $RAW_INSTALL | bash" >&2
+    if repair; then
+        exit 1
+    fi
+    echo "  Reparalo a mano con:  \$REPAIR" >&2
     exit 1
 fi
 
@@ -168,16 +217,20 @@ fi
 if ! "\$VENV/bin/python" -c 'import clock_tui' >/dev/null 2>&1; then
     echo "clock: el paquete clock_tui no se importa con \$VENV/bin/python." >&2
     echo "  Suele ser un venv viejo (\$(\$VENV/bin/python -V 2>&1)) re-hecho contra otra versión." >&2
-    echo "  Reparalo con:  curl -fsSL $RAW_INSTALL | bash" >&2
+    if repair; then
+        exit 1
+    fi
+    echo "  Reparalo a mano con:  \$REPAIR" >&2
     exit 1
 fi
 
+# Aviso (no error): el venv funciona, pero el pin quedó desalineado.install.sh
+# lo corrige en la próxima corrida, así que no vale la pena tocar nada.
 if [ -f "\$PINNED" ]; then
     pinned_real="\$(readlink -f "\$(cat "\$PINNED")" 2>/dev/null || true)"
     have_real="\$(readlink -f "\$VENV/bin/python" 2>/dev/null || true)"
     if [ -n "\$pinned_real" ] && [ "\$pinned_real" != "\$have_real" ]; then
         echo "clock: aviso — el venv corre \$have_real pero el pin dice \$pinned_real." >&2
-        echo "  Realignealo con:  curl -fsSL $RAW_INSTALL | bash" >&2
     fi
 fi
 

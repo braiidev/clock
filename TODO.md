@@ -21,6 +21,18 @@ Diagnóstico: v0.56 evitaba que se *crearan* venvs flotantes, pero no reparaba l
 
 **Verificación:** `pytest` → 545 passed, 1 failed (preexistente, ver `Next`). `tests/e2e_install.sh` (nuevo) monta una instalación vieja —venv con `python3 -m venv` y `~/.local/bin/clock` como symlink al venv— y verifica que install.sh la repara, que `clock --update` la repara solo y avisa "venv recreado con ruta versionada, reiniciá clock", que el segundo update no toca nada y que `~/.config/clock/` queda intacto. Se corre a mano (`bash tests/e2e_install.sh`): clona y crea venvs de verdad y depende de `/usr/bin/python3.X`, así que no va en la suite de pytest.
 
+### 🔧 FIX — el wrapper se auto-repara: tras un upgrade de SO el usuario no copia nada — CERRADO v0.59
+El caso que quedaba abierto: si el SO borra la versión pineada, el venv queda **danglante** y `clock --update` no puede reparar —porque el comando que lo haría es el mismo venv muerto. Antes había que copiar la línea de `curl` a mano.
+
+- [x] `repair()` en el wrapper: si el venv no responde, corre el `install.sh` que ya está en el repo y se relanza. Funciona porque **el wrapper es bash**, no necesita el venv para ejecutarse
+- [x] Auto-limitado a un intento por invocación (`CLOCK_REPAIR_ATTEMPT`): si install.sh no logra reparar, avisa y ofrece el comando manual en vez de quedar en loop
+- [x] Re-ejecuta con `exec bash "$0" "${ARGS[@]}"`: install.sh reescribe el wrapper mientras corre, y bash lee los scripts por partes — seguir en el archivo viejo leería basura
+- [x] Los args se guardan en `ARGS=("$@")` porque dentro de `repair()` `"$@"` son los de la función (vacíos): sin eso el relanzamiento perdía `--version` y entraba directo a la TUI
+
+**Un bug que salió testeando:** con `exec bash "$0" "$@"` el relanzamiento perdía los argumentos y abría la TUI en vez de responder `--version`. Solo se ve invadiendo `clock` sin argumentos; con `--version` no se nota.
+
+**Verificación:** `tests/e2e_install.sh` simula el upgrade (pineada → `python3.99` inexistente) y cubre: repara solo, queda funcional, realinea el pin, no pide comando manual, no entra en loop cuando install.sh falla (ofrece el manual), y una invocación ya sana no anuncia nada. E2E OK. `pytest` 545 passed, 1 failed (preexistente).
+
 ### 🔧 FIX — el wrapper se endosaba sobre el venv y `~/.local/bin/clock` seguía siendo symlink — CERRADO v0.58
 - [x] `prepare_bin` borra el symlink viejo en vez de solo dejar pasar. `cat > $BIN` escribe atravesando symlinks, así que el wrapper se metía sobre el console script de pip dentro del `.venv` y el comando seguía siendo symlink en vez del wrapper. Detectado al aplicarlo a la instalación real.
 

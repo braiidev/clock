@@ -105,6 +105,61 @@ echo
 echo "── datos personales intactos ──"
 chk "~/.config/clock no fue tocado por esto" "sin-data" "$([ -e "$HOME/.config/clock/data.json" ] && echo con-data || echo sin-data)"
 
+# ── Auto-reparación del wrapper ──
+# El caso que la venv muerta dejaba sin salida: tras un upgrade que borra la
+# versión pineada, el comando está muerto y `clock --update` tampoco puede
+# correr (es el mismo venv). El wrapper es bash, así que puede repararse solo.
+
+echo
+echo "── SIMULO upgrade de SO: la versión pineada desaparece ──"
+ln -sf /usr/bin/python3.99 "$CLONE/.venv/bin/python3.12"  # danglante
+ln -sf python3.99 "$CLONE/.venv/bin/python3"
+ln -sf python3.99 "$CLONE/.venv/bin/python"
+printf '/usr/bin/python3.99\n' >"$CLONE/.pinned-python"
+echo "  pin: /usr/bin/python3.99 (no existe)   .venv/bin/python -> python3.99"
+
+echo
+echo "── clock se repara solo, sin que el usuario copie nada ──"
+out=$("$BIN" --version 2>&1); rc=$?
+echo "$out" | sed 's/^/  /'
+chk "exit code" 0 "$rc"
+chk "anuncia que repara" "sí" "$(echo "$out" | grep -q 'Reparando' && echo sí || echo no)"
+chk "vuelve a funcionar" "sí" "$(echo "$out" | grep -q '^clock ' && echo sí || echo no)"
+chk "ya no está danglante" "sí" "$([ -x "$CLONE/.venv/bin/python" ] && echo sí || echo no)"
+chk "venv importable" "sí" "$("$CLONE/.venv/bin/python" -c 'import clock_tui' 2>/dev/null && echo sí || echo no)"
+chk "no pide comando manual" "sí" "$(echo "$out" | grep -q 'Reparalo a mano' && echo no || echo sí)"
+chk "pin realineado" "no" "$([ "$(cat "$CLONE/.pinned-python")" = "/usr/bin/python3.99" ] && echo sí || echo no)"
+chk "wrapper sigue siendo wrapper" "no" "$([ -L "$BIN" ] && echo sí || echo no)"
+chk "console script de pip intacto" "sí" "$(grep -q 'clock_tui' "$CLONE/.venv/bin/clock" 2>/dev/null && ! grep -q 'managed wrapper' "$CLONE/.venv/bin/clock" 2>/dev/null && echo sí || echo no)"
+
+echo
+echo "── no entra en loop si la reparación no sirve ──"
+# install.sh roto: la reparación falla y tiene que salir, no reintentar para siempre
+cp "$CLONE/install.sh" "$CLONE/install.sh.bak"
+printf '#!/usr/bin/env bash\nexit 1\n' >"$CLONE/install.sh"
+rm -f "$CLONE/.venv/bin/python"; ln -sf python3.99 "$CLONE/.venv/bin/python"
+out2=$(timeout 60 "$BIN" --version 2>&1); rc2=$?
+chk "termina (no cuelga)" "sí" "$([ $rc2 -ne 124 ] && echo sí || echo no)"
+chk "no es éxito" "sí" "$([ $rc2 -ne 0 ] && echo sí || echo no)"
+chk "ofrece el comando manual" "sí" "$(echo "$out2" | grep -q 'Reparalo a mano' && echo sí || echo no)"
+chk "avisó que la reparación falló" "sí" "$(echo "$out2" | grep -q 'reparación automática falló' && echo sí || echo no)"
+echo "$out2" | tail -3 | sed 's/^/  /'
+mv "$CLONE/install.sh.bak" "$CLONE/install.sh"
+
+echo
+echo "── segundo clock tras reparar: sin ruido ──"
+# El paso anterior dejó el venv roto a propósito (install.sh estaba stubbeado).
+# Con install.sh devuelto pero sin correr, clock tiene que volver a reparar: es
+# lo correcto, porque el venv sigue muerto. Primero se sana, y recién ahí se
+# verifica que una invocación sana no vuelva a anunciar nada.
+out3=$("$BIN" --version 2>&1)
+chk "vuelve a reparar mientras siga roto" "sí" "$(echo "$out3" | grep -q 'Reparando' && echo sí || echo no)"
+chk "y funciona" "sí" "$(echo "$out3" | grep -q '^clock ' && echo sí || echo no)"
+out4=$("$BIN" --version 2>&1)
+chk "ya sano: no anuncia reparación" "sí" "$(echo "$out4" | grep -q 'Reparando' && echo no || echo sí)"
+chk "ya sano: solo la versión" "clock 1.2.0" "$out4"
+chk "ya sano: no pide comando manual" "sí" "$(echo "$out4" | grep -q 'Reparalo a mano' && echo no || echo sí)"
+
 echo
 if [ "$fail" = 0 ]; then echo "E2E OK"; else echo "E2E FALLÓ"; fi
 # No dejamos basura: el sandbox es de /tmp y no lo necesita nadie.
