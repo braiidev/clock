@@ -197,7 +197,15 @@ prepare_bin() {
         local link
         link="$(readlink -f "$BIN" 2>/dev/null || true)"
         case "$link" in
-            "$VENV"/*) return 0 ;; # symlink viejo a nuestro venv: se reemplaza
+            "$VENV"/*)
+                # Symlink viejo de la instalación anterior. Hay que BORRAR el
+                # enlace, no solo dejar pasar: `cat > $BIN` escribe atravesando
+                # symlinks, así que sin esto el wrapper se endosaba sobre el
+                # console script de pip dentro del .venv y ~/.local/bin/clock
+                # seguía siendo un symlink en vez del wrapper.
+                rm -f "$BIN"
+                return 0
+                ;;
         esac
     fi
     local backup="$BIN.bak.$(date +%Y%m%d%H%M%S)"

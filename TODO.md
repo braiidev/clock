@@ -19,7 +19,12 @@ Diagnóstico: v0.56 evitaba que se *crearan* venvs flotantes, pero no reparaba l
 2. Detectar el recreado con `os.stat` no funciona: sigue el symlink y ve el mismo inode antes y después. Con `lstat` tampoco: al borrar y recrear el symlink el filesystem **reutiliza** el inode. Lo resuelve un timestamp escrito por install.sh.
 3. `do_update` con `behind == 0` respondía "Estás al día" sin mirar el venv. Ese fue el silencio que reportó el usuario: hizo el update, todo seemed bien, y la protección seguía sin aplicarse.
 
-**Verificación:** `pytest` → 545 passed, 1 failed (preexistente, ver `Next`). E2E en HOME aislado con un venv creado **a la vieja** (`python3 -m venv`): install.sh lo detecta y recrea; `clock --update` lo repara solo y avisa "venv recreado con ruta versionada, reiniciá clock"; el segundo update no toca nada; `~/.config/clock/` intacto.
+**Verificación:** `pytest` → 545 passed, 1 failed (preexistente, ver `Next`). `tests/e2e_install.sh` (nuevo) monta una instalación vieja —venv con `python3 -m venv` y `~/.local/bin/clock` como symlink al venv— y verifica que install.sh la repara, que `clock --update` la repara solo y avisa "venv recreado con ruta versionada, reiniciá clock", que el segundo update no toca nada y que `~/.config/clock/` queda intacto. Se corre a mano (`bash tests/e2e_install.sh`): clona y crea venvs de verdad y depende de `/usr/bin/python3.X`, así que no va en la suite de pytest.
+
+### 🔧 FIX — el wrapper se endosaba sobre el venv y `~/.local/bin/clock` seguía siendo symlink — CERRADO v0.58
+- [x] `prepare_bin` borra el symlink viejo en vez de solo dejar pasar. `cat > $BIN` escribe atravesando symlinks, así que el wrapper se metía sobre el console script de pip dentro del `.venv` y el comando seguía siendo symlink en vez del wrapper. Detectado al aplicarlo a la instalación real.
+
+**Sobre los chequeos:** mi aserción del E2E decía "✓ es wrapper" con `grep -q 'managed wrapper' "$BIN"` — y `grep` sigue symlinks, así que daba verde con el symlink puesto. Un chequeo que pasa cuando la realidad es la contraria es peor que no tener chequeo. Ahora el E2E comprueba que `$BIN` sea archivo regular (`[ -L "$BIN" ]`) y que el console script de pip quede intacto.
 
 ### 🔧 FIX — install.sh sobrevive al upgrade a Ubuntu 26.04 (Python 3.14) — CERRADO v0.56
 
