@@ -72,6 +72,85 @@ def sync_pinned_python(repo: str | None = None, exe: str | None = None) -> str |
     return old or "(ninguno)"
 
 
+def venv_is_floating(repo: str | None = None) -> bool:
+    """¿El venv del repo cuelga del alias flotante /usr/bin/python3?
+
+    Espejo en Python de `venv_flota()` en install.sh. Hace falta acá porque
+    `clock --update` tiene que decidir si repara, y comparar la ruta resuelta no
+    sirve: un venv flotante resuelve a la misma ruta que uno sano. Solo la
+    estructura del enlace delata el problema.
+
+    Un venv con --copies no tiene symlink en bin/python3: se considera estable.
+    """
+    base = Path(repo or repo_root()) / ".venv" / "bin"
+    try:
+        target = os.readlink(base / "python3")
+    except OSError:
+        return False  # --copies, o no hay venv
+    resolved = target if target.startswith("/") else str(base / target)
+    return Path(resolved).is_symlink() and os.path.basename(resolved) == "python3"
+
+
+@dataclass
+class InstallRun:
+    """Resultado de reejecutar el install.sh del repo."""
+
+    ok: bool
+    rebuilt: bool = False
+    skipped: bool = False
+    detail: str = ""
+
+
+# install.sh escribe esto dentro del venv cada vez que lo recrea. Comparar el
+# valor antes y después del update es la forma determinista de saber si este
+# proceso quedó apuntando a un árbol que ya no existe.
+VENV_MARKER = ".created-at"
+
+
+def _venv_marker(repo: str) -> str:
+    try:
+        return Path(repo, ".venv", VENV_MARKER).read_text().strip()
+    except OSError:
+        return ""
+
+
+def run_installer(
+    repo: str, timeout: int = PULL_TIMEOUT, extra_env: dict[str, str] | None = None
+) -> InstallRun:
+    """Reejecuta el install.sh del repo y deja el entorno en estado canónico.
+
+    do_update no sabe construir un venv: no tiene las reglas de pin, ni el
+    wrapper, ni el smoke test. Delega en install.sh, que es la fuente única de
+    cómo se arma el entorno, así `clock --update` deja el sistema exactamente
+    como lo dejaría `curl | bash`.
+
+    Ojo: install.sh puede borrar y recrear el .venv desde el que corre este
+    proceso. Por eso se reporta `rebuilt`: el llamador tiene que pedir reinicio.
+    """
+    script = os.path.join(repo, "install.sh")
+    if not os.path.isfile(script):
+        return InstallRun(False, skipped=True, detail="install.sh no está en el repo")
+    before = _venv_marker(repo)
+    env = dict(os.environ, CLOCK_TUI_DIR=repo)
+    env.update(extra_env or {})
+    try:
+        r = subprocess.run(
+            ["bash", script],
+            cwd=repo,
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired:
+        return InstallRun(False, detail="install.sh tardó demasiado")
+    except OSError as e:  # noqa: BLE001
+        return InstallRun(False, detail=str(e))
+    if r.returncode != 0:
+        return InstallRun(False, detail=(r.stderr or r.stdout).strip()[-400:])
+    return InstallRun(True, rebuilt=_venv_marker(repo) != before)
+
+
 def _git(
     repo: str, args: list[str], timeout: int = GIT_TIMEOUT
 ) -> subprocess.CompletedProcess[str]:
@@ -137,34 +216,67 @@ class UpdateResult:
     message: str
 
 
+def _cerrar(repo: str, base_msg: str, force: bool) -> UpdateResult:
+    """Deja el entorno canónico y arma el mensaje final del update.
+
+    Con `force` (hubo commits) siempre reejecuta install.sh, porque el código
+    recién bajado puede traer un install.sh distinto. Sin `force` solo corre si
+    el venv está anclado al alias flotante, para no reinstallar en cada update
+    sin novedad — pero ese chequeo es el que evita el silencio: sin él, un
+    `clock --update` sobre un venv flotante respondía "Estás al día" mientras la
+    protección contra el próximo upgrade de SO seguía sin aplicarse.
+    """
+    if not force and not venv_is_floating(repo):
+        return UpdateResult(True, base_msg + " — reiniciá")
+
+    # install.sh solo refresca el paquete editable cuando recrea el venv, así que
+    # el refresco se hace acá para no perderlo en el camino de HEALTHY.
+    _pip_reinstall(repo)
+    sync_sounds(repo)
+
+    inst = run_installer(repo)
+    if inst.skipped:
+        return UpdateResult(True, base_msg + " — reiniciá")
+    if not inst.ok:
+        return UpdateResult(
+            False,
+            f"{base_msg} — pero el entorno no quedó sano: {inst.detail}. "
+            f"Reejecutá:  bash {os.path.join(repo, 'install.sh')}",
+        )
+    if inst.rebuilt:
+        return UpdateResult(
+            True, base_msg + " — venv recreado con ruta versionada, reiniciá clock"
+        )
+    return UpdateResult(True, base_msg + " — reiniciá")
+
+
 def do_update(repo: str) -> UpdateResult:
-    """Aplica la actualización si hay commits detrás. Si falla el pull, resetea."""
+    """Aplica la actualización si hay commits detrás y deja el entorno sano.
+
+    Si el pull falla por historial divergido, resetea a origin/main. Al final
+    siempre pasa por install.sh para que el venv quede anclado a una ruta
+    versionada del intérprete: uno anclado a /usr/bin/python3 se rompe solo con
+    el próximo upgrade del SO, y acá es el momento de cheapo.
+    """
     with _lock:
         info = _check_update_unlocked(repo)
         if not info.ok:
             return UpdateResult(False, f"No se pudo verificar: {info.error}")
         if info.behind == 0:
             stale = sync_pinned_python(repo)
+            base = f"Estás al día ({info.current})"
             if stale:
-                return UpdateResult(
-                    True,
-                    f"Estás al día ({info.current}) — intérprete pineado corregido "
-                    f"(era {stale})",
-                )
-            return UpdateResult(True, f"Estás al día ({info.current})")
+                base += f" — intérprete pineado corregido (era {stale})"
+            return _cerrar(repo, base, force=False)
         pull = _git(repo, ["pull", "--ff-only"], timeout=PULL_TIMEOUT)
         if pull.returncode == 0:
-            _pip_reinstall(repo)
-            sync_sounds(repo)
-            sync_pinned_python(repo)
-            return UpdateResult(True, f"Actualizado a {info.available} — reiniciá")
+            return _cerrar(repo, f"Actualizado a {info.available}", force=True)
         reset = _git(repo, ["reset", "--hard", "origin/main"], timeout=15)
         if reset.returncode == 0:
-            _pip_reinstall(repo)
-            sync_sounds(repo)
-            sync_pinned_python(repo)
-            return UpdateResult(
-                True, f"Actualizado a {info.available} (historial corregido) — reiniciá"
+            return _cerrar(
+                repo,
+                f"Actualizado a {info.available} (historial corregido)",
+                force=True,
             )
         return UpdateResult(False, f"Falló el pull: {pull.stderr.strip()}")
 
@@ -220,6 +332,8 @@ def is_auto_update_enabled() -> bool:
 
 __all__ = [
     "__version__",
+    "VENV_MARKER",
+    "InstallRun",
     "UpdateInfo",
     "UpdateResult",
     "check_update",
@@ -227,6 +341,8 @@ __all__ = [
     "is_auto_update_enabled",
     "pinned_python",
     "repo_root",
+    "run_installer",
     "sync_pinned_python",
     "sync_sounds",
+    "venv_is_floating",
 ]

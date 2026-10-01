@@ -1,10 +1,25 @@
 # TODO
 
 ## Doing
-*(vacío — batch FIX Python 3.14 cerrado)*
+*(vacío)*
 
 ## Next
 - [ ] v1.2.26 fix: `test_footer_oculto_si_no_cabe_o_config_off` falla en `tests/test_app.py:189` — roto desde el commit `v0.55 style: micro una linea` (no está en el Done de abajo). No lo toqué: ajeno al batch FIX
+
+### 🔧 FIX — el venv flotante NO se reparaba, y `clock --update` no lo reparaba — CERRADO v0.57
+Diagnóstico: v0.56 evitaba que se *crearan* venvs flotantes, pero no reparaba los que ya existían. Y `clock --update` solo hacía `git pull` + `pip install -e`, así que jamás ejecutaba `install.sh`.
+
+- [x] v0.57a: `venv_flota()` en install.sh — detecta el alias flotante recorriendo el enlace. `venv_ok` la consulta, así que un venv flotante se recrea con la ruta versionada
+- [x] v0.57b: `venv_is_floating(repo)` en update.py — espejo en Python, porque resolver la ruta no los distingue
+- [x] v0.57c: `run_installer(repo)` — `do_update` delega en el `install.sh` del repo (fuente única de cómo se arma el entorno). Con commits nuevos siempre corre; sin novedad solo si el venv está flotante
+- [x] v0.57d: detección de recreado vía `.venv/.created-at` (timestamp con nanosegundos que install.sh escribe al recrear), para poder decir "reiniciá clock"
+
+**Tres bugs que aparecieron al testear el escenario real** (ninguno se veía leyendo el código):
+1. `venv_ok` comparaba rutas **resueltas**: un venv flotante resuelve a la misma ruta que uno sano (`/usr/bin/python3.12`), así que pasaba por sano y el fix nunca se aplicaba. Resolver a `realpath` —el arreglo anterior— borraba justo la información que distingue los dos casos.
+2. Detectar el recreado con `os.stat` no funciona: sigue el symlink y ve el mismo inode antes y después. Con `lstat` tampoco: al borrar y recrear el symlink el filesystem **reutiliza** el inode. Lo resuelve un timestamp escrito por install.sh.
+3. `do_update` con `behind == 0` respondía "Estás al día" sin mirar el venv. Ese fue el silencio que reportó el usuario: hizo el update, todo seemed bien, y la protección seguía sin aplicarse.
+
+**Verificación:** `pytest` → 545 passed, 1 failed (preexistente, ver `Next`). E2E en HOME aislado con un venv creado **a la vieja** (`python3 -m venv`): install.sh lo detecta y recrea; `clock --update` lo repara solo y avisa "venv recreado con ruta versionada, reiniciá clock"; el segundo update no toca nada; `~/.config/clock/` intacto.
 
 ### 🔧 FIX — install.sh sobrevive al upgrade a Ubuntu 26.04 (Python 3.14) — CERRADO v0.56
 

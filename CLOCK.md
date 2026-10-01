@@ -593,7 +593,9 @@ El dataset vive en `~/.config/clock/`; el instalador **no toca datos personales*
 
 Por eso `~/.local/bin/clock` es un **wrapper** y no un symlink al venv: valida el entorno antes de arrancar y, si está roto, dice qué pasó y con qué comando se arregla. Con un symlink, cuando el venv se rompía tampoco se podía ni correr `clock --update` para repararlo.
 
-`install.sh` es **idempotente y auto-reparador**: si el venv no responde, o corre un intérprete distinto al pineado, o el paquete no se importa, lo recrea solo. Al final corre `clock --version` como smoke test y sale con error en vez de declarar éxito.
+`install.sh` es **idempotente y auto-reparador**: si el venv no responde, o corre un intérprete distinto al pineado, o cuelga del alias flotante `/usr/bin/python3`, o el paquete no se importa, lo recrea solo. Al final corre `clock --version` como smoke test y sale con error en vez de declarar éxito.
+
+**`clock --update` también repara.** No solo hace `git pull`: si detecta que el venv quedó anclado al alias flotante (típico tras un upgrade de SO, o en una instalación vieja), reejecuta el `install.sh` del repo y deja el entorno canónico. Si tuvo que recrear el venv te pide reiniciar, porque el proceso que estaba corriendo quedó apuntando a un árbol que ya no existe. No hace falta que sepas ningún comando: el update es el que se autorrepara.
 
 Overrides pensados para tests: `CLOCK_TUI_DIR`, `CLOCK_TUI_BIN`, `CLOCK_TUI_RC`.
 

@@ -87,9 +87,36 @@ pick_python() {
     resolve_python
 }
 
+# ¿El venv cuelga del alias flotante /usr/bin/python3?
+#
+# Comparar rutas RESUELTAS no alcanza para detectar esto: un venv flotante
+# (python → python3 → /usr/bin/python3 → python3.12) resuelve exactamente a la
+# misma ruta que uno sano, así que venv_ok lo daba por bueno y el fix no se
+# aplicaba nunca — justo el caso que hay que reparar. El destino no delata la
+# estructura; hay que recorrer el enlace.
+#   sano:     .venv/bin/python3 -> python3.12
+#   flotante: .venv/bin/python3 -> /usr/bin/python3
+# Un venv con --copies no tiene symlink: readlink falla y se considera estable.
+venv_flota() {
+    local target abs
+    target="$(readlink "$VENV/bin/python3" 2>/dev/null)" || return 1
+    [ -n "$target" ] || return 1
+    case "$target" in
+        /*) abs="$target" ;;
+        *) abs="$VENV/bin/$target" ;;
+    esac
+    # Si el destino final no es symlink, no puede cambiar de versión: estable.
+    [ -L "$abs" ] || return 1
+    case "${abs##*/}" in
+        python3) return 0 ;;
+    esac
+    return 1
+}
+
 # ¿El venv responde, corre el intérprete pineado, y el paquete se importa?
 venv_ok() {
     [ -x "$VENV/bin/python" ] || return 1
+    venv_flota && return 1
     "$VENV/bin/python" -c '' >/dev/null 2>&1 || return 1
     [ -f "$PINNED" ] || return 1
     local want have
@@ -105,6 +132,12 @@ create_venv() {
     "$1" -m venv "$VENV"
     "$VENV/bin/pip" install --quiet --upgrade pip
     "$VENV/bin/pip" install --quiet -e "$TARGET"
+    # Marca de recreación con nanosegundos. update.py la compara antes y después
+    # de reejecutar este script para poder avisar "reiniciá clock": si el venv se
+    # reemplazó, el proceso que está corriendo quedó apuntando a un árbol que ya
+    # no existe. (Comparar el inode del symlink no sirve: al borrarlo y recrearlo
+    # el filesystem reutiliza el número, y el rebuild pasa inadvertido.)
+    date +%s%N >"$VENV/.created-at"
 }
 
 # ~/.local/bin/clock deja de ser un symlink al venv y pasa a ser un wrapper con
@@ -235,7 +268,7 @@ if venv_ok; then
     echo "  ↳ venv sano ($(py_minor "$VENV/bin/python")) — se reusa"
 else
     if [ -d "$VENV" ]; then
-        echo "  ↳ venv roto o desalineado — recreando con $PY"
+        echo "  ↳ venv roto, desalineado o anclado al alias flotante — recreando con $PY"
         rm -rf "$VENV"
     fi
     create_venv "$PY"
