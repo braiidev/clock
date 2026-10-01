@@ -1,9 +1,60 @@
 # TODO
 
 ## Doing
-*(vacío — batch v0.50-v0.54 cerrado)*
+*(vacío — esperando OK para arrancar el batch FIX Python 3.14)*
 
 ## Next
+
+### 🔧 FIX — install.sh sobrevive al upgrade a Ubuntu 26.04 (Python 3.14)
+
+**Síntoma:** en la máquina `.38` (actualizada 24.04 → 26.04) `clock` dejó de arrancar.
+
+**Causa raíz — el symlink flotante, no el número de versión.** `python3 -m venv` crea el venv así:
+
+```
+.venv/bin/python -> python3
+.venv/bin/python3 -> /usr/bin/python3     ← flotante
+```
+
+`/usr/bin/python3` es un symlink que **siempre** resuelve a la última versión instalada. El venv
+declara `version = 3.12.3` en `pyvenv.cfg` pero ejecuta lo que haya. Al subir a 26.04 el shebang de
+`.venv/bin/clock` siguió resolviendo (ahora era 3.14), así que no hubo "comando no encontrado":
+corrió un 3.14 dentro de un venv con layout 3.12 → buscó `lib/python3.14/site-packages`, no lo
+encontró, y el install editable quedó invisible → `ModuleNotFoundError: clock_tui`.
+
+**Trampa de fondo:** como `~/.local/bin/clock` era `ln -sf` al venv, en cuanto se rompió tampoco se
+podía correr `clock --update` para repararlo. La salida de emergencia estaba dentro de lo roto.
+
+**Verificado empíricamente** (3 formas de crear venv, mismo repo):
+
+| Método | `.venv/bin/python` apunta a | ¿Sobrevive upgrade del SO? |
+|---|---|---|
+| `python3 -m venv` | `/usr/bin/python3` ← flotante | ❌ se rompe en silencio |
+| `python3.14 -m venv` | `/usr/bin/python3.14` | ✅ |
+| `uv venv --python /usr/bin/python3.14` | `/usr/bin/python3.14` | ✅ |
+
+**Decisión para clock — opción B: Python del sistema versionado, detectado.** Invocar la ruta
+versionada (`/usr/bin/python3.14 -m venv`) en vez del symlink flotante, y **grabar la versión pineada
+en un archivo** para que `--update` sepa qué validar. Justificación: clock tiene `dependencies = []`
+— es stdlib puro, no hay una sola extensión compilada. Meterle uv agregaría una dependencia que se
+puede romper y no compra nada (0 MB, sin red para el intérprete). Cuando `/usr/bin/python3` pase a
+3.15, `/usr/bin/python3.14` sigue existiendo y el venv sigue funcionando.
+
+- [ ] v0.56: acota `requires-python` de `>=3.9` a `>=3.10,<3.15` (el rango abierto no impedía que un install tomara 3.14). **Sin** `uv.lock`: sin deps no hay nada que resolver
+- [ ] v0.57: install.sh — resolver el `/usr/bin/python3.X` versionado más nuevo dentro del rango y **persistirlo en `.pinned-python`**. Sin ese archivo, el venv se recrea contra un intérprete distinto al que se creó
+- [ ] v0.58: install.sh — recrear el venv invocado con la ruta versionada (`"$PY" -m venv`), nunca con `python3`. Auto-reparar si `.venv/bin/python` no responde o su versión ≠ la pineada
+- [ ] v0.59: wrapper `~/.local/bin/clock` en vez de symlink — valida venv + versión pineada, y si está roto repara o imprime el comando exacto. Cierra el agujero de "el comando mismo está muerto"
+- [ ] v0.60: `update.py` — `do_update()` valida la versión pineada y reconstruye el venv si el SO\subió de minor; `_pip_reinstall()` sigue usando `sys.executable -m pip` (el venv se crea con pip, no con `--seed`)
+- [ ] v0.61: smoke test final (`clock --version`) con salida ≠ 0 si falla + append idempotente de `~/.local/bin` al PATH (hoy solo avisa y nunca escribe)
+- [ ] v0.62: regenerar `~/Dev/Clock/.venv` stale (su `pyvenv.cfg` graba `command = .../Dev/_scripts/Clock/.venv`, path que ya no existe) + test del escenario real (venv con intérprete flotante → se detecta y repara) + CLOCK.md/README
+
+**Entrega:** un solo commit (v0.56-v0.62 unificados) + `git tag v0.56`, con este bloque como registro.
+
+**No tocar:** `sync_sounds()` sigue copiando a `~/.config/clock/sounds` sin pisar; `--uninstall` sigue
+funcionando (`os.unlink` borra igual symlink o archivo regular, y `repo_root()` resuelve al mismo dir).
+
+**Nota:** los install.sh se sirven desde `raw.githubusercontent.com/braiidev/clock/main/install.sh`.
+El fix no llega a otra máquina hasta que esté pusheado a `main`.
 
 ## Done
 - [x] v1.2.25: Listas usan toda la altura: quitar caps _MAX_VISIBLE cuando hay capacity real - v0.54
